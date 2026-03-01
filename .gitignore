@@ -13,6 +13,8 @@ venv/
 build/
 artifacts/
 cache/
+*.abi
+*.bin
 
 # testing
 .pytest_cache/
