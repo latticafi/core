@@ -10,7 +10,7 @@
         The premium prices RISK, not yield. It goes to the pool's
         premium reserve (not directly to lenders). The reserve absorbs
         liquidation shortfalls. Lender yield comes from the separate
-        fixed interest rate.
+        interest rate (utilization curve).
 
         Flow:
         1. Backend calls commit(conditionId, epoch, hash(premium, salt))

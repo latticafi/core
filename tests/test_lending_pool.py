@@ -5,9 +5,13 @@ Covers:
 - Lender deposit / withdraw USDC.e
 - Share accounting (pro-rata yield from interest, NOT premiums)
 - Borrower opens loan: posts CTF collateral, pays interest + premium, receives USDC.e
+- Interest rate computed from utilization curve at origination
 - Interest deducted at origination → added to pool (lender yield)
 - Premium deducted at origination → added to reserve (risk buffer)
-- Interest rate set by governance, can be updated
+- Utilization curve: rate increases with utilization
+- Utilization curve: kink at optimal utilization (steep above)
+- Utilization curve: governance can update curve params
+- Interest rate locked per-loan for the epoch (no mid-epoch changes)
 - Borrower repays at epoch end → reclaims collateral
 - Borrower cannot borrow after resolution cutoff
 - Borrower cannot borrow on non-whitelisted market

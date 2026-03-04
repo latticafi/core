@@ -20,8 +20,10 @@ Covers:
   resets → lending resumes
 
 Accounting model:
+- Interest rate computed from utilization curve at origination
 - Interest collected at origination → pool yield → lender shares appreciate
 - Premium collected at origination → reserve (not lender yield)
+- Utilization increases after borrow → next loan pays higher rate
 - Liquidation shortfall → deducted from reserve
 - Reserve surplus after clean epoch → stays in reserve
 - Governance triggers reserve surplus distribution → lenders receive bonus

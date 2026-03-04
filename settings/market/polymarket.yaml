@@ -1,0 +1,54 @@
+polygon:
+  # Gnosis ctf
+  ctf: "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
+
+  # ctf exchange contract
+  ctf_exchange: "0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E"
+
+  # negrisk contracts
+  neg_risk_adapter: "0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296"
+  neg_risk_ctf_exchange: "0xC5d563A36AE78145C45a50134d48A1215220f80a"
+  neg_risk_fee_module: "0x78769D50Be1763ed1CA0D5E878D93f05aabff29e"
+  neg_risk_operator: "0x71523d0f655B41E805Cec45b17163f528B59B820"
+  neg_risk_vault: "0x7f67327E88c258932D7d8f72950bE0d46975E11D"
+  neg_risk_uma_ctf_adapter: "0x2F5e3684cb1F318ec51b00Edba38d79Ac2c0aA9d"
+  neg_risk_wrapped_collateral: "0x3A3BD7bb9528E159577F7C2e685CC81A765002E2"
+
+  # resolution oracle
+  uma_oracle: "0xA1E4380A403c87681037FAb25e04D356e651b2C6"
+
+  # offchain infra
+  relayer: "https://relayer-v2.polymarket.com/"
+  clob_api: "https://clob.polymarket.com"
+
+  # Safe wallet infrastructure
+  # safe_factory: "0x..." # obtained from SDK at runtime via getContractConfig(137)
+
+  # Token approvals (Safe must approve these before trading)
+  # ERC20 (USDC.e) approve() targets:
+  #   - CTF:                  0x4D97DCd97eC945f40cF65F87097ACe5EA0476045
+  #   - CTF Exchange:         0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E
+  #   - NegRisk CTF Exchange: 0xC5d563A36AE78145C45a50134d48A1215220f80a
+  #   - NegRisk Adapter:      0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296
+  #   - LendingPool:          (deployed — from deployments/polygon.yaml)
+  #   - CollateralManager:    (deployed — from deployments/polygon.yaml)
+  #
+  # ERC1155 (CTF) setApprovalForAll() targets:
+  #   - CTF Exchange:         0x4bFb41d5B3570DeFd03C39a9A4D8dE6Bd8B8982E
+  #   - NegRisk CTF Exchange: 0xC5d563A36AE78145C45a50134d48A1215220f80a
+  #   - NegRisk Adapter:      0xd91E80cF2E7be2e162c6513ceD06f1dD0dA35296
+  #   - CollateralManager:    (deployed — from deployments/polygon.yaml)
+
+amoy:
+  ctf: ""
+  ctf_exchange: "0xdFE02Eb6733538f8Ea35D585af8DE5958AD99E40"
+  neg_risk_adapter: ""
+  neg_risk_ctf_exchange: ""
+  neg_risk_fee_module: ""
+  neg_risk_operator: ""
+  neg_risk_vault: ""
+  neg_risk_uma_ctf_adapter: ""
+  neg_risk_wrapped_collateral: ""
+  uma_oracle: ""
+  relayer: ""
+  clob_api: ""

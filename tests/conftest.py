@@ -13,7 +13,7 @@ def deployer():
 
 @pytest.fixture(scope="session")
 def pricer():
-    """Authorized backend wallet that commits/reveals WARHORSE premiums
+    """Authorized backend wallet that commits/reveals WARBIRD premiums
     and pushes PriceFeed updates."""
     acc = boa.env.generate_address("pricer")
     boa.env.set_balance(acc, 10 * 10**18)
@@ -60,7 +60,7 @@ def isolate():
 #     - mergePositions() → burn YES+NO → USDC.e
 # - mock CTF Exchange (orderbook — accepts sells, returns USDC.e)
 # - mock PriceFeed with set_price(conditionId, price) helper
-# - mock WarhorseOracle with set_premium(conditionId, epoch, bps) helper
+# - mock PremiumOracle with set_premium(conditionId, epoch, bps) helper
 #
 # time travel helpers
 #

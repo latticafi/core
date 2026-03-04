@@ -6,6 +6,7 @@
         Used by CollateralManager for health factor calculation
         and by Liquidator for trigger checks.
 @dev    Design principles (bootstrapped — no Chainlink for CTF tokens):
+
         WHY BOOTSTRAPPED:
         No oracle service (Chainlink, Pyth, RedStone) carries price
         feeds for per-market CTF outcome tokens. The source of truth
