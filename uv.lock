@@ -698,7 +698,7 @@ dev = [
     { name = "mamushi" },
     { name = "pytest" },
     { name = "types-pyyaml" },
-    { name = "vyper-lsp" },
+    { name = "vyper-language-server" },
 ]
 
 [package.metadata]
@@ -714,7 +714,7 @@ dev = [
     { name = "mamushi" },
     { name = "pytest" },
     { name = "types-pyyaml" },
-    { name = "vyper-lsp", git = "https://github.com/vyperlang/vyper-lsp.git?rev=43116b3ca8e5a1f5a1c08adf448fd2d09daaf4dc" },
+    { name = "vyper-language-server", git = "https://github.com/latticafi/vyper-language-server" },
 ]
 
 [[package]]
@@ -1365,9 +1365,9 @@ wheels = [
 ]
 
 [[package]]
-name = "vyper-lsp"
-version = "0.1.4"
-source = { git = "https://github.com/vyperlang/vyper-lsp.git?rev=43116b3ca8e5a1f5a1c08adf448fd2d09daaf4dc#43116b3ca8e5a1f5a1c08adf448fd2d09daaf4dc" }
+name = "vyper-language-server"
+version = "0.2.2"
+source = { git = "https://github.com/latticafi/vyper-language-server#532f6e712b0ed14971a5ff4b6f02f487a6f349fa" }
 dependencies = [
     { name = "lark" },
     { name = "lsprotocol" },

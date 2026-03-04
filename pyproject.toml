@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["mamushi", "pytest", "types-PyYAML", "vyper-lsp"]
+dev = ["mamushi", "pytest", "types-PyYAML", "vyper-language-server"]
 
 [tool.mamushi]
 line_length = 100
@@ -25,4 +25,4 @@ python_functions = ["test_*"]
 testpaths = ["tests"]
 
 [tool.uv.sources]
-vyper-lsp = { git = "https://github.com/vyperlang/vyper-lsp.git", rev = "43116b3ca8e5a1f5a1c08adf448fd2d09daaf4dc" }
+vyper-language-server = { git = "https://github.com/latticafi/vyper-language-server" }
