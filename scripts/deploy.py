@@ -18,18 +18,10 @@ import yaml
 import boa
 
 ROOT = Path(__file__).resolve().parent.parent
-CHAIN_DIR = ROOT / "chain"
-MARKET_DIR = ROOT / "market"
 SETTINGS_DIR = ROOT / "settings"
+CHAIN_DIR = SETTINGS_DIR / "chain"
+MARKET_DIR = SETTINGS_DIR / "market"
 DEPLOYMENTS_DIR = ROOT / "deployments"
-
-
-def load_env(key: str) -> str:
-    value = os.environ.get(key)
-    if not value:
-        print(f"ERROR: Missing required secret {key}")
-        sys.exit(1)
-    return value
 
 
 def load_yaml(path):
@@ -43,7 +35,7 @@ def load_yaml(path):
         return yaml.safe_load(f)
 
 
-def save_deployment(chain_name: str, addresses: dict) -> None:
+def save_deployment(chain_name, addresses):
     DEPLOYMENTS_DIR.mkdir(exist_ok=True)
     out = DEPLOYMENTS_DIR / f"{chain_name}.yaml"
     with open(out, "w") as f:
@@ -52,9 +44,9 @@ def save_deployment(chain_name: str, addresses: dict) -> None:
 
 
 def deploy(chain, market):
-    chain_config = load_yaml(CHAIN_DIR / f"{chain}.yaml")
-    market_config = load_yaml(MARKET_DIR / f"{market}.yaml")
-    lattica_config = load_yaml(SETTINGS_DIR / "lattica.yaml")
+    chain_cfg = load_yaml(CHAIN_DIR / f"{chain}.yaml")
+    market_cfg = load_yaml(MARKET_DIR / f"{market}.yaml")
+    lattica_cfg = load_yaml(SETTINGS_DIR / "lattica.yaml")
 
     if chain == "local":
         print("Deploying to local pyevm...")
@@ -75,12 +67,12 @@ def deploy(chain, market):
         boa.env.add_account(account)
         boa.env.eoa = account.address
 
-    print(f"  Chain:    {chain} ({chain_config['chain_id']})")
+    print(f"  Chain:    {chain} ({chain_cfg['chain_id']})")
     print(f"  Market:   {market}")
-    print(f"  USDC.e:   {chain_config.get('usdc_e', 'N/A')}")
-    print(f"  CTF:      {market_config.get('ctf', 'N/A')}")
+    print(f"  USDC.e:   {chain_cfg.get('usdc_e', 'N/A')}")
+    print(f"  CTF:      {market_cfg.get('ctf', 'N/A')}")
     print(
-        f"  Cutoff:   {lattica_config.get('resolution_cutoff_buffer', 'N/A')}s before resolution"
+        f"  Cutoff:   {lattica_cfg.get('resolution_cutoff_buffer', 'N/A')}s before resolution"
     )
 
     # Deploy sequence (6 contracts):
