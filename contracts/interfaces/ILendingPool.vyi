@@ -1,5 +1,34 @@
-# @version ^0.4.3
+# pragma version ~=0.4.3
 
-"""
-@title ILendingPool
-"""
+@external
+def deposit(amount: uint256):
+    ...
+
+@external
+def withdraw(shares: uint256):
+    ...
+
+@external
+def borrow(amount: uint256, borrower: address):
+    ...
+
+@external
+def repay(borrower: address):
+    ...
+
+@external
+def handle_liquidation_proceeds(borrower: address, recovered: uint256):
+    ...
+
+@external
+def cover_shortfall(borrower: address, shortfall: uint256):
+    ...
+
+@external
+@view
+def get_share_value(shares: uint256) -> uint256:
+    ...
+
+@external
+def advance_epoch():
+    ...

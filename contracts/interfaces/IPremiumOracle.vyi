@@ -1,5 +1,14 @@
-# @version ^0.4.3
+# pragma version ~=0.4.3
 
-"""
-@title IPremiumOracle
-"""
+@external
+def commit(epoch: uint256, commitment: bytes32):
+    ...
+
+@external
+def reveal(epoch: uint256, premium: uint256, salt: bytes32):
+    ...
+
+@external
+@view
+def get_premium(epoch: uint256) -> uint256:
+    ...

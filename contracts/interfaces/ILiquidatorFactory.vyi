@@ -1,0 +1,14 @@
+# pragma version ~=0.4.3
+
+@external
+def deploy_liquidator(condition_id: bytes32, pool: address, collateral_manager: address, price_feed: address, ctf_exchange: address, neg_risk_exchange: address) -> address:
+    ...
+
+@external
+def set_implementation(new_impl: address):
+    ...
+
+@external
+@view
+def get_liquidator(condition_id: bytes32) -> address:
+    ...

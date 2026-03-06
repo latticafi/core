@@ -1,5 +1,14 @@
-# @version ^0.4.3
+# pragma version ~=0.4.3
 
-"""
-@title ILiquidator
-"""
+@external
+def liquidate(borrower: address):
+    ...
+
+@external
+@view
+def is_liquidatable(borrower: address) -> bool:
+    ...
+
+@external
+def set_liquidation_fee(new_fee: uint256):
+    ...

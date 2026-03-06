@@ -1,0 +1,14 @@
+# pragma version ~=0.4.3
+
+@external
+def deploy_cm(condition_id: bytes32, ctf_address: address, price_feed: address, market_registry: address) -> address:
+    ...
+
+@external
+def set_implementation(new_impl: address):
+    ...
+
+@external
+@view
+def get_cm(condition_id: bytes32) -> address:
+    ...

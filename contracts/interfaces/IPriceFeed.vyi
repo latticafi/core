@@ -1,8 +1,15 @@
-# @version ^0.4.3
+# pragma version ~=0.4.3
 
-"""
-@title IPriceFeed
-@notice Swappable interface for outcome token price feeds.
-        If a third-party oracle (Chainlink, Pyth, UMA) ever supports
-        CTF tokens, swap the implementation behind this interface.
-"""
+@external
+def push_price(new_price: uint256):
+    ...
+
+@external
+@view
+def get_price() -> (uint256, bool):
+    ...
+
+@external
+@view
+def is_circuit_breaker_tripped() -> bool:
+    ...
