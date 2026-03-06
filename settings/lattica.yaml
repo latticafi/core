@@ -1,5 +1,6 @@
 polygon:
-  default_epoch_duration: 604800 # 7 days (seconds)
+  min_loan_duration: 86400     # 1 day (seconds)
+  max_loan_duration: 604800    # 7 days (seconds)
   resolution_cutoff_buffer: 14400
 
   # Interest rate
@@ -18,7 +19,8 @@ polygon:
   dao: {}
 
 amoy:
-  default_epoch_duration: 3600
+  min_loan_duration: 600       # 10 min (seconds)
+  max_loan_duration: 3600      # 1 hour (seconds)
   resolution_cutoff_buffer: 600
   interest_base_rate_bps: 50
   interest_optimal_utilization_bps: 8000
