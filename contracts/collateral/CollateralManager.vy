@@ -28,7 +28,6 @@ interface IMarketRegistry:
 struct Position:
     amount: uint256
     token_id: uint256
-    epoch: uint256
     debt: uint256
 
 event CollateralDeposited:
@@ -83,7 +82,6 @@ def deposit_collateral(borrower: address, amount: uint256, token_id: uint256):
     self.positions[borrower] = Position(
         amount=amount,
         token_id=token_id,
-        epoch=0,
         debt=0,
     )
     self.total_collateral += amount

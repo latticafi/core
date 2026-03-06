@@ -6,9 +6,7 @@ interface ILendingPool:
     def premium_reserve() -> uint256: view
     def total_shares() -> uint256: view
     def shares(_lender: address) -> uint256: view
-    def current_epoch() -> uint256: view
-    # epoch_state is a flag type in LendingPool, represented as uint256 in cross-contract calls
-    def epoch_state() -> uint256: view
+    def pool_state() -> uint256: view
 
 
 @view

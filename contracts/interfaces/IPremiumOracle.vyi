@@ -1,14 +1,22 @@
 # pragma version ~=0.4.3
 
 @external
-def commit(epoch: uint256, commitment: bytes32):
+def commit(borrower: address, commitment: bytes32):
     ...
 
 @external
-def reveal(epoch: uint256, premium: uint256, salt: bytes32):
+def reveal(borrower: address, premium: uint256, salt: bytes32):
+    ...
+
+@external
+def clear_premium(borrower: address):
     ...
 
 @external
 @view
-def get_premium(epoch: uint256) -> uint256:
+def get_premium(borrower: address) -> uint256:
+    ...
+
+@external
+def set_authorized_pool(pool: address):
     ...

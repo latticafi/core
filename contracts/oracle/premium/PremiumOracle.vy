@@ -12,22 +12,27 @@ exports: (
 
 event PremiumCommitted:
     condition_id: bytes32
-    epoch: uint256
+    borrower: address
 
 event PremiumRevealed:
     condition_id: bytes32
-    epoch: uint256
+    borrower: address
     premium: uint256
+
+event PremiumCleared:
+    condition_id: bytes32
+    borrower: address
 
 MAX_BPS: constant(uint256) = 10000
 
 condition_id: public(bytes32)
 authorized_pricer: public(address)
+authorized_pool: public(address)
 reveal_delay: public(uint256)
-commitments: public(HashMap[uint256, bytes32])
-premiums: public(HashMap[uint256, uint256])
-commit_block: public(HashMap[uint256, uint256])
-is_active: public(HashMap[uint256, bool])
+commitments: public(HashMap[address, bytes32])
+premiums: public(HashMap[address, uint256])
+commit_block: public(HashMap[address, uint256])
+is_active: public(HashMap[address, bool])
 
 @deploy
 def __init__(condition_id: bytes32, authorized_pricer: address, reveal_delay: uint256):
@@ -38,28 +43,43 @@ def __init__(condition_id: bytes32, authorized_pricer: address, reveal_delay: ui
     self.reveal_delay = reveal_delay
 
 @external
-def commit(epoch: uint256, commitment: bytes32):
-    assert msg.sender == self.authorized_pricer, "not authorized"
-    assert self.commitments[epoch] == empty(bytes32), "already committed"
-    assert commitment != empty(bytes32), "empty commitment"
-    self.commitments[epoch] = commitment
-    self.commit_block[epoch] = block.number
-    log PremiumCommitted(condition_id=self.condition_id, epoch=epoch)
+def set_authorized_pool(pool: address):
+    ownable._check_owner()
+    assert pool != empty(address), "invalid pool"
+    self.authorized_pool = pool
 
 @external
-def reveal(epoch: uint256, premium: uint256, salt: bytes32):
+def commit(borrower: address, commitment: bytes32):
     assert msg.sender == self.authorized_pricer, "not authorized"
-    assert self.commitments[epoch] != empty(bytes32), "not committed"
-    assert not self.is_active[epoch], "already revealed"
-    assert block.number >= self.commit_block[epoch] + self.reveal_delay, "reveal too early"
+    assert self.commitments[borrower] == empty(bytes32), "already committed"
+    assert commitment != empty(bytes32), "empty commitment"
+    self.commitments[borrower] = commitment
+    self.commit_block[borrower] = block.number
+    log PremiumCommitted(condition_id=self.condition_id, borrower=borrower)
+
+@external
+def reveal(borrower: address, premium: uint256, salt: bytes32):
+    assert msg.sender == self.authorized_pricer, "not authorized"
+    assert self.commitments[borrower] != empty(bytes32), "not committed"
+    assert not self.is_active[borrower], "already revealed"
+    assert block.number >= self.commit_block[borrower] + self.reveal_delay, "reveal too early"
     assert premium <= MAX_BPS, "premium exceeds max"
-    assert keccak256(abi_encode(premium, salt)) == self.commitments[epoch], "hash mismatch"
-    self.premiums[epoch] = premium
-    self.is_active[epoch] = True
-    log PremiumRevealed(condition_id=self.condition_id, epoch=epoch, premium=premium)
+    assert keccak256(abi_encode(premium, salt)) == self.commitments[borrower], "hash mismatch"
+    self.premiums[borrower] = premium
+    self.is_active[borrower] = True
+    log PremiumRevealed(condition_id=self.condition_id, borrower=borrower, premium=premium)
+
+@external
+def clear_premium(borrower: address):
+    assert msg.sender == self.authorized_pool, "not authorized"
+    self.commitments[borrower] = empty(bytes32)
+    self.premiums[borrower] = empty(uint256)
+    self.commit_block[borrower] = empty(uint256)
+    self.is_active[borrower] = False
+    log PremiumCleared(condition_id=self.condition_id, borrower=borrower)
 
 @external
 @view
-def get_premium(epoch: uint256) -> uint256:
-    assert self.is_active[epoch], "premium not active"
-    return self.premiums[epoch]
+def get_premium(borrower: address) -> uint256:
+    assert self.is_active[borrower], "premium not active"
+    return self.premiums[borrower]

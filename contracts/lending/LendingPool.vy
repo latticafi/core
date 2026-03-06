@@ -27,7 +27,8 @@ interface ICollateralManager:
     def get_health_factor(_borrower: address) -> uint256: view
 
 interface IPremiumOracle:
-    def get_premium(_epoch: uint256) -> uint256: view
+    def get_premium(_borrower: address) -> uint256: view
+    def clear_premium(_borrower: address): nonpayable
 
 interface IInterestRateModel:
     def get_rate(_utilization_bps: uint256) -> uint256: view
@@ -40,18 +41,16 @@ interface IMarketRegistry:
     def get_market_params(_condition_id: bytes32) -> (uint256, uint256, uint256, uint256, uint256, bool, bool): view
     def get_cutoff(_condition_id: bytes32) -> uint256: view
 
-flag EpochState:
+flag PoolState:
     OPEN
     PAUSED
     CUTOFF
-    EXPIRED
 
 struct Loan:
     principal: uint256
     interest_paid: uint256
     premium_paid: uint256
     rate_bps: uint256
-    epoch: uint256
     epoch_end: uint256
     is_active: bool
 
@@ -71,6 +70,7 @@ event Borrow:
     interest: uint256
     premium: uint256
     rate_bps: uint256
+    duration: uint256
 
 event Repay:
     borrower: address
@@ -84,8 +84,9 @@ event ShortfallCovered:
     borrower: address
     shortfall: uint256
 
-event EpochAdvanced:
-    epoch: uint256
+event LoanDurationBoundsUpdated:
+    min_duration: uint256
+    max_duration: uint256
 
 LIQUIDATOR_ROLE: constant(bytes32) = keccak256("LIQUIDATOR_ROLE")
 MAX_BPS: constant(uint256) = 10000
@@ -103,10 +104,9 @@ premium_reserve: public(uint256)
 shares: public(HashMap[address, uint256])
 total_shares: public(uint256)
 loans: public(HashMap[address, Loan])
-current_epoch: public(uint256)
-epoch_start: public(uint256)
-epoch_duration: public(uint256)
-epoch_state: public(EpochState)
+min_loan_duration: public(uint256)
+max_loan_duration: public(uint256)
+pool_state: public(PoolState)
 
 
 @deploy
@@ -118,7 +118,8 @@ def __init__(
     _interest_rate_model: address,
     _market_registry: address,
     _price_feed: address,
-    _epoch_duration: uint256,
+    _min_loan_duration: uint256,
+    _max_loan_duration: uint256,
 ):
     access_control.__init__()
     assert _usdc_e != empty(address), "empty usdc_e"
@@ -127,7 +128,8 @@ def __init__(
     assert _interest_rate_model != empty(address), "empty interest_rate_model"
     assert _market_registry != empty(address), "empty market_registry"
     assert _price_feed != empty(address), "empty price_feed"
-    assert _epoch_duration > 0, "zero epoch_duration"
+    assert _min_loan_duration > 0, "zero min_loan_duration"
+    assert _max_loan_duration >= _min_loan_duration, "max < min duration"
     self.condition_id = _condition_id
     self.usdc_e = _usdc_e
     self.collateral_manager = _collateral_manager
@@ -135,10 +137,9 @@ def __init__(
     self.interest_rate_model = _interest_rate_model
     self.market_registry = _market_registry
     self.price_feed = _price_feed
-    self.epoch_duration = _epoch_duration
-    self.current_epoch = 1
-    self.epoch_start = block.timestamp
-    self.epoch_state = EpochState.OPEN
+    self.min_loan_duration = _min_loan_duration
+    self.max_loan_duration = _max_loan_duration
+    self.pool_state = PoolState.OPEN
 
 
 @nonreentrant
@@ -146,8 +147,8 @@ def __init__(
 def deposit(amount: uint256):
     assert amount > 0, "zero amount"
     assert (
-        self.epoch_state == EpochState.OPEN
-        or self.epoch_state == EpochState.PAUSED
+        self.pool_state == PoolState.OPEN
+        or self.pool_state == PoolState.PAUSED
     ), "deposits disabled"
     extcall IERC20(self.usdc_e).transferFrom(msg.sender, self, amount)
     new_shares: uint256 = 0
@@ -178,10 +179,12 @@ def withdraw(share_amount: uint256):
 
 @nonreentrant
 @external
-def borrow(amount: uint256, borrower: address):
-    assert self.epoch_state == EpochState.OPEN, "not open"
+def borrow(amount: uint256, borrower: address, duration: uint256):
+    assert self.pool_state == PoolState.OPEN, "not open"
     assert amount > 0, "zero amount"
     assert not self.loans[borrower].is_active, "loan exists"
+    assert duration >= self.min_loan_duration, "duration too short"
+    assert duration <= self.max_loan_duration, "duration too long"
 
     cutoff: uint256 = staticcall IMarketRegistry(self.market_registry).get_cutoff(
         self.condition_id
@@ -213,7 +216,7 @@ def borrow(amount: uint256, borrower: address):
     interest: uint256 = (amount * rate_bps) // MAX_BPS
 
     premium_bps: uint256 = staticcall IPremiumOracle(self.premium_oracle).get_premium(
-        self.current_epoch
+        borrower
     )
     premium: uint256 = (amount * premium_bps) // MAX_BPS
 
@@ -224,7 +227,7 @@ def borrow(amount: uint256, borrower: address):
     self.total_deposits += interest
     self.premium_reserve += premium
 
-    epoch_end: uint256 = self.epoch_start + self.epoch_duration
+    epoch_end: uint256 = block.timestamp + duration
     if epoch_end > cutoff:
         epoch_end = cutoff
 
@@ -233,7 +236,6 @@ def borrow(amount: uint256, borrower: address):
         interest_paid=interest,
         premium_paid=premium,
         rate_bps=rate_bps,
-        epoch=self.current_epoch,
         epoch_end=epoch_end,
         is_active=True,
     )
@@ -242,6 +244,7 @@ def borrow(amount: uint256, borrower: address):
     health: uint256 = staticcall ICollateralManager(self.collateral_manager).get_health_factor(borrower)
     assert health >= 10000, "undercollateralized"
 
+    extcall IPremiumOracle(self.premium_oracle).clear_premium(borrower)
     extcall IERC20(self.usdc_e).transfer(borrower, net)
     log Borrow(
         borrower=borrower,
@@ -249,6 +252,7 @@ def borrow(amount: uint256, borrower: address):
         interest=interest,
         premium=premium,
         rate_bps=rate_bps,
+        duration=duration,
     )
 
 
@@ -303,27 +307,22 @@ def get_share_value(share_amount: uint256) -> uint256:
 
 
 @external
-def advance_epoch():
+def set_loan_duration_bounds(min_duration: uint256, max_duration: uint256):
     access_control._check_role(access_control.DEFAULT_ADMIN_ROLE, msg.sender)
-    self.current_epoch += 1
-    self.epoch_start = block.timestamp
-    cutoff: uint256 = staticcall IMarketRegistry(self.market_registry).get_cutoff(
-        self.condition_id
-    )
-    if block.timestamp >= cutoff:
-        self.epoch_state = EpochState.CUTOFF
-    else:
-        self.epoch_state = EpochState.OPEN
-    log EpochAdvanced(epoch=self.current_epoch)
+    assert min_duration > 0, "zero min_duration"
+    assert max_duration >= min_duration, "max < min duration"
+    self.min_loan_duration = min_duration
+    self.max_loan_duration = max_duration
+    log LoanDurationBoundsUpdated(min_duration=min_duration, max_duration=max_duration)
 
 
 @external
 def pause():
     access_control._check_role(access_control.DEFAULT_ADMIN_ROLE, msg.sender)
-    self.epoch_state = EpochState.PAUSED
+    self.pool_state = PoolState.PAUSED
 
 
 @external
 def unpause():
     access_control._check_role(access_control.DEFAULT_ADMIN_ROLE, msg.sender)
-    self.epoch_state = EpochState.OPEN
+    self.pool_state = PoolState.OPEN

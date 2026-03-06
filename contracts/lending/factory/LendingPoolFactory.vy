@@ -44,7 +44,8 @@ def deploy_pool(
     interest_rate_model: address,
     market_registry: address,
     price_feed: address,
-    epoch_duration: uint256,
+    min_loan_duration: uint256,
+    max_loan_duration: uint256,
 ) -> address:
     ownable._check_owner()
     assert self.pool_by_market[condition_id] == empty(address), "pool exists"
@@ -58,7 +59,8 @@ def deploy_pool(
         interest_rate_model,
         market_registry,
         price_feed,
-        epoch_duration,
+        min_loan_duration,
+        max_loan_duration,
         code_offset=3,
     )
 

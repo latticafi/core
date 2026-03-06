@@ -1,7 +1,7 @@
 # pragma version ~=0.4.3
 
 @external
-def deploy_pool(condition_id: bytes32, usdc_e: address, collateral_manager: address, premium_oracle: address, interest_rate_model: address, market_registry: address, price_feed: address, epoch_duration: uint256) -> address:
+def deploy_pool(condition_id: bytes32, usdc_e: address, collateral_manager: address, premium_oracle: address, interest_rate_model: address, market_registry: address, price_feed: address, min_loan_duration: uint256, max_loan_duration: uint256) -> address:
     ...
 
 @external

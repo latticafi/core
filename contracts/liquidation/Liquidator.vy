@@ -16,16 +16,13 @@ exports: (
 )
 
 interface ILendingPool:
-    def loans(_borrower: address) -> (uint256, uint256, uint256, uint256, uint256, uint256, bool): view
+    def loans(_borrower: address) -> (uint256, uint256, uint256, uint256, uint256, bool): view
     def handle_liquidation_proceeds(_borrower: address, _recovered: uint256): nonpayable
-    def current_epoch() -> uint256: view
-    # epoch_state is a flag type in LendingPool, represented as uint256 in cross-contract calls
-    def epoch_state() -> uint256: view
 
 interface ICollateralManager:
     def seize_collateral(_borrower: address) -> uint256: nonpayable
     def get_health_factor(_borrower: address) -> uint256: view
-    def positions(_borrower: address) -> (uint256, uint256, uint256, uint256): view
+    def positions(_borrower: address) -> (uint256, uint256, uint256): view
 
 interface IPriceFeed:
     def get_price() -> (uint256, bool): view
@@ -92,12 +89,12 @@ def __init__(
 def liquidate(borrower: address):
     assert self._is_liquidatable(borrower), "not liquidatable"
 
-    pos_data: (uint256, uint256, uint256, uint256) = staticcall ICollateralManager(
+    pos_data: (uint256, uint256, uint256) = staticcall ICollateralManager(
         self.collateral_manager
     ).positions(borrower)
     token_id: uint256 = pos_data[1]
 
-    loan_data: (uint256, uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
+    loan_data: (uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
         self.lending_pool
     ).loans(borrower)
     principal: uint256 = loan_data[0]
@@ -136,14 +133,14 @@ def is_liquidatable(borrower: address) -> bool:
 @view
 @internal
 def _is_liquidatable(borrower: address) -> bool:
-    loan_data: (uint256, uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
+    loan_data: (uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
         self.lending_pool
     ).loans(borrower)
-    is_active: bool = loan_data[6]
+    is_active: bool = loan_data[5]
     if not is_active:
         return False
 
-    epoch_end: uint256 = loan_data[5]
+    epoch_end: uint256 = loan_data[4]
     if block.timestamp > epoch_end:
         return True
 
