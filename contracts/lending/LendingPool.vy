@@ -27,8 +27,7 @@ interface ICollateralManager:
     def get_health_factor(_borrower: address) -> uint256: view
 
 interface IPremiumOracle:
-    def get_premium(_borrower: address) -> uint256: view
-    def clear_premium(_borrower: address): nonpayable
+    def verify_and_consume(_borrower: address, _premium_bps: uint256, _amount: uint256, _deadline: uint256, _signature: Bytes[65]) -> uint256: nonpayable
 
 interface IInterestRateModel:
     def get_rate(_utilization_bps: uint256) -> uint256: view
@@ -179,7 +178,7 @@ def withdraw(share_amount: uint256):
 
 @nonreentrant
 @external
-def borrow(amount: uint256, borrower: address, duration: uint256):
+def borrow(amount: uint256, borrower: address, duration: uint256, premium_bps: uint256, deadline: uint256, signature: Bytes[65]):
     assert self.pool_state == PoolState.OPEN, "not open"
     assert amount > 0, "zero amount"
     assert not self.loans[borrower].is_active, "loan exists"
@@ -215,10 +214,10 @@ def borrow(amount: uint256, borrower: address, duration: uint256):
     )
     interest: uint256 = (amount * rate_bps) // MAX_BPS
 
-    premium_bps: uint256 = staticcall IPremiumOracle(self.premium_oracle).get_premium(
-        borrower
+    verified_premium_bps: uint256 = extcall IPremiumOracle(self.premium_oracle).verify_and_consume(
+        borrower, premium_bps, amount, deadline, signature
     )
-    premium: uint256 = (amount * premium_bps) // MAX_BPS
+    premium: uint256 = (amount * verified_premium_bps) // MAX_BPS
 
     net: uint256 = amount - interest - premium
     assert net > 0, "net zero"
@@ -244,7 +243,6 @@ def borrow(amount: uint256, borrower: address, duration: uint256):
     health: uint256 = staticcall ICollateralManager(self.collateral_manager).get_health_factor(borrower)
     assert health >= 10000, "undercollateralized"
 
-    extcall IPremiumOracle(self.premium_oracle).clear_premium(borrower)
     extcall IERC20(self.usdc_e).transfer(borrower, net)
     log Borrow(
         borrower=borrower,

@@ -1,21 +1,78 @@
 import boa
 import pytest
-from eth_abi import encode as abi_encode
+from eth_account import Account as EthAccount
 from eth_utils import keccak
 from eth_utils import keccak as keccak256
 
 POOL_ROLE: bytes = keccak(b"POOL_ROLE")
 LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
 
+PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-def setup_premium(premium_oracle, pricer, borrower, premium_bps=200):
-    salt = b"\x01" * 32
-    commitment = keccak256(abi_encode(["uint256", "bytes32"], [premium_bps, salt]))
+
+def sign_premium_quote(
+    pricer_key, oracle_address, borrower, condition_id,
+    premium_bps, amount, deadline, nonce, chain_id=1,
+):
+    domain_data = {
+        "name": "LatticaPremiumOracle",
+        "version": "1",
+        "chainId": chain_id,
+        "verifyingContract": oracle_address,
+    }
+    message_types = {
+        "PremiumQuote": [
+            {"name": "borrower", "type": "address"},
+            {"name": "conditionId", "type": "bytes32"},
+            {"name": "premiumBps", "type": "uint256"},
+            {"name": "amount", "type": "uint256"},
+            {"name": "deadline", "type": "uint256"},
+            {"name": "nonce", "type": "uint256"},
+        ],
+    }
+    message_data = {
+        "borrower": borrower,
+        "conditionId": "0x" + condition_id.hex() if isinstance(condition_id, bytes) else condition_id,
+        "premiumBps": premium_bps,
+        "amount": amount,
+        "deadline": deadline,
+        "nonce": nonce,
+    }
+    signed = EthAccount.sign_typed_data(
+        pricer_key,
+        domain_data=domain_data,
+        message_types=message_types,
+        message_data=message_data,
+    )
+    return signed.signature
+
+
+def _do_borrow_setup_and_borrow(
+    lending_pool, collateral_manager, mock_ctf, price_feed,
+    premium_oracle, deployer, pricer, lender, borrower, token_id,
+    funded_lender, funded_borrower,
+    deposit_amount=100_000 * 10**6,
+    collateral_amount=500 * 10**18,
+    borrow_amount=10_000 * 10**6,
+):
     with boa.env.prank(pricer):
-        premium_oracle.commit(borrower, commitment)
-    boa.env.time_travel(seconds=15)
-    with boa.env.prank(pricer):
-        premium_oracle.reveal(borrower, premium_bps, salt)
+        price_feed.push_price(7 * 10**17)
+
+    with boa.env.prank(lender):
+        lending_pool.deposit(deposit_amount)
+
+    with boa.env.prank(lending_pool.address):
+        collateral_manager.deposit_collateral(borrower, collateral_amount, token_id)
+
+    premium_bps = 200
+    deadline = 2_000_000_000
+    nonce = premium_oracle.get_nonce(borrower)
+    sig = sign_premium_quote(
+        PRICER_KEY, premium_oracle.address, borrower,
+        premium_oracle.condition_id(), premium_bps, borrow_amount, deadline, nonce,
+    )
+    with boa.env.prank(borrower):
+        lending_pool.borrow(borrow_amount, borrower, 604800, premium_bps, deadline, sig)
 
 
 def test_initial_state(
@@ -57,22 +114,11 @@ def test_is_liquidatable_expired_epoch(
     funded_lender,
     funded_borrower,
 ):
-    setup_premium(premium_oracle, pricer, borrower)
-
-    with boa.env.prank(pricer):
-        price_feed.push_price(7 * 10**17)
-
-    deposit_amount = 100_000 * 10**6
-    with boa.env.prank(lender):
-        lending_pool.deposit(deposit_amount)
-
-    collateral_amount = 500 * 10**18
-    with boa.env.prank(lending_pool.address):
-        collateral_manager.deposit_collateral(borrower, collateral_amount, token_id)
-
-    borrow_amount = 10_000 * 10**6
-    with boa.env.prank(borrower):
-        lending_pool.borrow(borrow_amount, borrower, 604800)
+    _do_borrow_setup_and_borrow(
+        lending_pool, collateral_manager, mock_ctf, price_feed,
+        premium_oracle, deployer, pricer, lender, borrower, token_id,
+        funded_lender, funded_borrower,
+    )
 
     boa.env.time_travel(seconds=604800 + 1)
 
@@ -98,22 +144,11 @@ def test_is_liquidatable_health_below_threshold(
     funded_lender,
     funded_borrower,
 ):
-    setup_premium(premium_oracle, pricer, borrower)
-
-    with boa.env.prank(pricer):
-        price_feed.push_price(7 * 10**17)
-
-    deposit_amount = 100_000 * 10**6
-    with boa.env.prank(lender):
-        lending_pool.deposit(deposit_amount)
-
-    collateral_amount = 500 * 10**18
-    with boa.env.prank(lending_pool.address):
-        collateral_manager.deposit_collateral(borrower, collateral_amount, token_id)
-
-    borrow_amount = 10_000 * 10**6
-    with boa.env.prank(borrower):
-        lending_pool.borrow(borrow_amount, borrower, 604800)
+    _do_borrow_setup_and_borrow(
+        lending_pool, collateral_manager, mock_ctf, price_feed,
+        premium_oracle, deployer, pricer, lender, borrower, token_id,
+        funded_lender, funded_borrower,
+    )
 
     debt_value = 5 * 10**18
     with boa.env.prank(lending_pool.address):
@@ -146,27 +181,18 @@ def test_liquidate(
     funded_lender,
     funded_borrower,
 ):
-    setup_premium(premium_oracle, pricer, borrower)
-
-    with boa.env.prank(pricer):
-        price_feed.push_price(7 * 10**17)
-
-    deposit_amount = 100_000 * 10**6
-    with boa.env.prank(lender):
-        lending_pool.deposit(deposit_amount)
-
-    collateral_amount = 500 * 10**18
-    with boa.env.prank(lending_pool.address):
-        collateral_manager.deposit_collateral(borrower, collateral_amount, token_id)
-
-    borrow_amount = 10_000 * 10**6
-    with boa.env.prank(borrower):
-        lending_pool.borrow(borrow_amount, borrower, 604800)
+    _do_borrow_setup_and_borrow(
+        lending_pool, collateral_manager, mock_ctf, price_feed,
+        premium_oracle, deployer, pricer, lender, borrower, token_id,
+        funded_lender, funded_borrower,
+    )
 
     boa.env.time_travel(seconds=604800 + 1)
     assert liquidator_contract.is_liquidatable(borrower) is True
 
     price = 7 * 10**17
+    collateral_amount = 500 * 10**18
+    borrow_amount = 10_000 * 10**6
     collateral_value = (collateral_amount * price) // 10**18
     fee = (collateral_value * 500) // 10_000
     to_pool = collateral_value - fee

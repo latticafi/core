@@ -9,7 +9,7 @@ def withdraw(shares: uint256):
     ...
 
 @external
-def borrow(amount: uint256, borrower: address, duration: uint256):
+def borrow(amount: uint256, borrower: address, duration: uint256, premium_bps: uint256, deadline: uint256, signature: Bytes[65]):
     ...
 
 @external
