@@ -11,5 +11,5 @@ def get_price() -> (uint256, bool):
 
 @external
 @view
-def is_circuit_breaker_tripped() -> bool:
+def is_circuit_breaker_active() -> bool:
     ...
