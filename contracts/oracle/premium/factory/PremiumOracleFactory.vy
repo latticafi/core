@@ -34,10 +34,10 @@ def __init__(_implementation: address):
     self.implementation = _implementation
 
 @external
-def deploy_oracle(condition_id: bytes32, authorized_pricer: address, reveal_delay: uint256) -> address:
+def deploy_oracle(condition_id: bytes32, authorized_pricer: address) -> address:
     ownable._check_owner()
     assert self.oracle_by_market[condition_id] == empty(address), "oracle already exists"
-    oracle: address = create_from_blueprint(self.implementation, condition_id, authorized_pricer, reveal_delay, code_offset=3)
+    oracle: address = create_from_blueprint(self.implementation, condition_id, authorized_pricer, code_offset=3)
     self.oracle_by_market[condition_id] = oracle
     self.oracle_list.append(oracle)
     self.oracle_count += 1
