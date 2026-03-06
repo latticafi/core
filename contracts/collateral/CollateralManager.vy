@@ -73,6 +73,7 @@ def __init__(
     self.price_feed = _price_feed
     self.market_registry = _market_registry
 
+@nonreentrant
 @external
 def deposit_collateral(borrower: address, amount: uint256, token_id: uint256):
     access_control._check_role(POOL_ROLE, msg.sender)
@@ -88,6 +89,7 @@ def deposit_collateral(borrower: address, amount: uint256, token_id: uint256):
     self.total_collateral += amount
     log CollateralDeposited(borrower=borrower, amount=amount, token_id=token_id)
 
+@nonreentrant
 @external
 def release_collateral(borrower: address):
     access_control._check_role(POOL_ROLE, msg.sender)
@@ -98,6 +100,7 @@ def release_collateral(borrower: address):
     self.positions[borrower] = empty(Position)
     log CollateralReleased(borrower=borrower, amount=pos.amount)
 
+@nonreentrant
 @external
 def seize_collateral(borrower: address) -> uint256:
     access_control._check_role(LIQUIDATOR_ROLE, msg.sender)
