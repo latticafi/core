@@ -1,20 +1,49 @@
 import boa
 import pytest
-from eth_abi import encode as abi_encode
+from eth_account import Account as EthAccount
 from eth_utils import keccak as keccak256
 
 LIQUIDATOR_ROLE: bytes = keccak256(b"LIQUIDATOR_ROLE")
 MAX_BPS = 10000
 
+PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
-def setup_premium(premium_oracle, pricer, borrower, premium_bps=200):
-    salt = b"\x01" * 32
-    commitment = keccak256(abi_encode(["uint256", "bytes32"], [premium_bps, salt]))
-    with boa.env.prank(pricer):
-        premium_oracle.commit(borrower, commitment)
-    boa.env.time_travel(seconds=15)
-    with boa.env.prank(pricer):
-        premium_oracle.reveal(borrower, premium_bps, salt)
+
+def sign_premium_quote(
+    pricer_key, oracle_address, borrower, condition_id,
+    premium_bps, amount, deadline, nonce, chain_id=1,
+):
+    domain_data = {
+        "name": "LatticaPremiumOracle",
+        "version": "1",
+        "chainId": chain_id,
+        "verifyingContract": oracle_address,
+    }
+    message_types = {
+        "PremiumQuote": [
+            {"name": "borrower", "type": "address"},
+            {"name": "conditionId", "type": "bytes32"},
+            {"name": "premiumBps", "type": "uint256"},
+            {"name": "amount", "type": "uint256"},
+            {"name": "deadline", "type": "uint256"},
+            {"name": "nonce", "type": "uint256"},
+        ],
+    }
+    message_data = {
+        "borrower": borrower,
+        "conditionId": "0x" + condition_id.hex() if isinstance(condition_id, bytes) else condition_id,
+        "premiumBps": premium_bps,
+        "amount": amount,
+        "deadline": deadline,
+        "nonce": nonce,
+    }
+    signed = EthAccount.sign_typed_data(
+        pricer_key,
+        domain_data=domain_data,
+        message_types=message_types,
+        message_data=message_data,
+    )
+    return signed.signature
 
 
 def do_deposit(lending_pool, lender, amount):
@@ -27,19 +56,16 @@ def setup_borrow_prerequisites(
     collateral_manager,
     mock_ctf,
     price_feed,
-    premium_oracle,
-    pricer,
     deployer,
     borrower,
     lender,
+    pricer,
     token_id,
     deposit_amount,
     collateral_amount=500 * 10**18,
     price=7 * 10**17,
-    premium_bps=200,
 ):
     do_deposit(lending_pool, lender, deposit_amount)
-    setup_premium(premium_oracle, pricer, borrower, premium_bps)
     with boa.env.prank(deployer):
         mock_ctf.mint(borrower, token_id, collateral_amount)
     with boa.env.prank(borrower):
@@ -50,9 +76,14 @@ def setup_borrow_prerequisites(
         price_feed.push_price(price)
 
 
-def do_borrow(lending_pool, borrower, amount, duration=604800):
+def do_borrow(lending_pool, premium_oracle, borrower, amount, duration=604800, premium_bps=200, deadline=2_000_000_000):
+    nonce = premium_oracle.get_nonce(borrower)
+    sig = sign_premium_quote(
+        PRICER_KEY, premium_oracle.address, borrower,
+        premium_oracle.condition_id(), premium_bps, amount, deadline, nonce,
+    )
     with boa.env.prank(borrower):
-        lending_pool.borrow(amount, borrower, duration)
+        lending_pool.borrow(amount, borrower, duration, premium_bps, deadline, sig)
 
 
 # --- Deposit / Withdraw ---
@@ -133,8 +164,8 @@ def test_borrow(
 
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
-        deposit_amount, premium_bps=premium_bps,
+        deployer, borrower, lender, pricer, token_id,
+        deposit_amount,
     )
 
     borrower_balance_before = mock_usdc.balanceOf(borrower)
@@ -145,7 +176,7 @@ def test_borrow(
     premium = (borrow_amount * premium_bps) // MAX_BPS
     net = borrow_amount - interest - premium
 
-    do_borrow(lending_pool, borrower, borrow_amount)
+    do_borrow(lending_pool, premium_oracle, borrower, borrow_amount, premium_bps=premium_bps)
 
     assert lending_pool.total_borrowed() == borrow_amount
     assert mock_usdc.balanceOf(borrower) == borrower_balance_before + net
@@ -172,22 +203,21 @@ def test_borrow_no_liquidity_reverts(
     token_id,
     funded_borrower,
 ):
-    setup_premium(premium_oracle, pricer, borrower)
     with boa.env.prank(pricer):
         price_feed.push_price(7 * 10**17)
     with boa.env.prank(lending_pool.address):
         collateral_manager.deposit_collateral(borrower, 500 * 10**18, token_id)
 
     with boa.reverts("insufficient liquidity"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
-def test_borrow_when_paused_reverts(lending_pool, deployer, borrower, setup_market):
+def test_borrow_when_paused_reverts(lending_pool, premium_oracle, deployer, borrower, setup_market):
     with boa.env.prank(deployer):
         lending_pool.pause()
 
     with boa.reverts("not open"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
 def test_borrow_duration_too_short_reverts(
@@ -208,12 +238,12 @@ def test_borrow_duration_too_short_reverts(
     deposit_amount = 100_000 * 10**6
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
 
     with boa.reverts("duration too short"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6, duration=100)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6, duration=100)
 
 
 def test_borrow_duration_too_long_reverts(
@@ -234,12 +264,12 @@ def test_borrow_duration_too_long_reverts(
     deposit_amount = 100_000 * 10**6
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
 
     with boa.reverts("duration too long"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6, duration=604800 + 1)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6, duration=604800 + 1)
 
 
 # --- Repay ---
@@ -265,11 +295,11 @@ def test_repay(
 
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
 
-    do_borrow(lending_pool, borrower, borrow_amount)
+    do_borrow(lending_pool, premium_oracle, borrower, borrow_amount)
 
     loan = lending_pool.loans(borrower)
     principal = loan[0]
@@ -335,11 +365,11 @@ def test_handle_liquidation_proceeds(
 
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
 
-    do_borrow(lending_pool, borrower, borrow_amount)
+    do_borrow(lending_pool, premium_oracle, borrower, borrow_amount)
 
     loan = lending_pool.loans(borrower)
     principal = loan[0]
@@ -388,13 +418,13 @@ def test_borrow_stale_price_reverts(
     deposit_amount = 100_000 * 10**6
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
     boa.env.time_travel(seconds=3601)
 
     with boa.reverts("price is stale"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
 def test_borrow_circuit_breaker_reverts(
@@ -414,7 +444,6 @@ def test_borrow_circuit_breaker_reverts(
 ):
     deposit_amount = 100_000 * 10**6
     do_deposit(lending_pool, lender, deposit_amount)
-    setup_premium(premium_oracle, pricer, borrower)
 
     with boa.env.prank(deployer):
         mock_ctf.mint(borrower, token_id, 500 * 10**18)
@@ -429,7 +458,7 @@ def test_borrow_circuit_breaker_reverts(
         price_feed.push_price(2 * 10**17)
 
     with boa.reverts("circuit breaker active"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
 def test_borrow_no_collateral_reverts(
@@ -447,12 +476,11 @@ def test_borrow_no_collateral_reverts(
 ):
     deposit_amount = 100_000 * 10**6
     do_deposit(lending_pool, lender, deposit_amount)
-    setup_premium(premium_oracle, pricer, borrower)
     with boa.env.prank(pricer):
         price_feed.push_price(7 * 10**17)
 
     with boa.reverts():
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
 def test_borrow_past_cutoff_reverts(
@@ -473,14 +501,14 @@ def test_borrow_past_cutoff_reverts(
     deposit_amount = 100_000 * 10**6
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount,
     )
 
     boa.env.time_travel(seconds=2_000_000_000)
 
     with boa.reverts("past cutoff"):
-        do_borrow(lending_pool, borrower, 10_000 * 10**6)
+        do_borrow(lending_pool, premium_oracle, borrower, 10_000 * 10**6)
 
 
 def test_withdraw_insufficient_liquidity_reverts(
@@ -503,11 +531,11 @@ def test_withdraw_insufficient_liquidity_reverts(
 
     setup_borrow_prerequisites(
         lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, pricer, deployer, borrower, lender, token_id,
+        deployer, borrower, lender, pricer, token_id,
         deposit_amount, collateral_amount=2000 * 10**18,
     )
 
-    do_borrow(lending_pool, borrower, borrow_amount)
+    do_borrow(lending_pool, premium_oracle, borrower, borrow_amount)
 
     lender_shares = lending_pool.shares(lender)
 

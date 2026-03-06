@@ -1,10 +1,13 @@
 import boa
 import pytest
+from eth_account import Account as EthAccount
 from eth_utils import keccak
 
 
 POOL_ROLE: bytes = keccak(b"POOL_ROLE")
 LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
+
+PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 
 @pytest.fixture(scope="session")
@@ -15,10 +18,15 @@ def deployer():
 
 
 @pytest.fixture(scope="session")
-def pricer():
-    acc = boa.env.generate_address("pricer")
-    boa.env.set_balance(acc, 10 * 10**18)
-    return acc
+def pricer_account():
+    return EthAccount.from_key(PRICER_KEY)
+
+
+@pytest.fixture(scope="session")
+def pricer(pricer_account):
+    addr = pricer_account.address
+    boa.env.set_balance(addr, 10 * 10**18)
+    return addr
 
 
 @pytest.fixture(scope="session")
@@ -115,7 +123,6 @@ def premium_oracle(deployer, pricer, condition_id):
             "contracts/oracle/premium/PremiumOracle.vy",
             condition_id,
             pricer,
-            1,
         )
 
 
