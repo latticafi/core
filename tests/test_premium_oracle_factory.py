@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(premium_oracle_factory, premium_oracle_blueprint, deployer):

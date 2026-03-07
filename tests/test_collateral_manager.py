@@ -1,5 +1,4 @@
 import boa
-import pytest
 from eth_utils.crypto import keccak as keccak256
 
 POOL_ROLE: bytes = keccak256(b"POOL_ROLE")

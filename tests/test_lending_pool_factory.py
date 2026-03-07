@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(lending_pool_factory, lending_pool_blueprint, deployer):
