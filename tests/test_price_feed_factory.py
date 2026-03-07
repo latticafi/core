@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(price_feed_factory, price_feed_blueprint, deployer):

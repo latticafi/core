@@ -1,5 +1,4 @@
 import boa
-import pytest
 from eth_account import Account as EthAccount
 from eth_utils.crypto import keccak as keccak256
 

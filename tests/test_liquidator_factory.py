@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(liquidator_factory, liquidator_blueprint, deployer):

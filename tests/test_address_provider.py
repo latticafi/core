@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_owner_is_deployer(address_provider, deployer):

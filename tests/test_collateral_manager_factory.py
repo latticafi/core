@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(collateral_manager_factory, collateral_manager_blueprint, deployer):

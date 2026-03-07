@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_params(interest_rate_model):
