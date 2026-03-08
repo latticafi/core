@@ -3,7 +3,6 @@ import pytest
 from eth_account import Account as EthAccount
 from eth_utils import keccak
 
-
 POOL_ROLE: bytes = keccak(b"POOL_ROLE")
 LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
 
@@ -231,58 +230,83 @@ def funded_borrower(mock_ctf, borrower, collateral_manager, token_id, deployer):
 @pytest.fixture()
 def price_feed_blueprint(deployer):
     with boa.env.prank(deployer):
-        return boa.load_partial("contracts/oracle/pricefeed/PriceFeed.vy").deploy_as_blueprint()
+        return boa.load_partial(
+            "contracts/oracle/pricefeed/PriceFeed.vy"
+        ).deploy_as_blueprint()
 
 
 @pytest.fixture()
 def price_feed_factory(deployer, price_feed_blueprint):
     with boa.env.prank(deployer):
-        return boa.load("contracts/oracle/pricefeed/factory/PriceFeedFactory.vy", price_feed_blueprint.address)
+        return boa.load(
+            "contracts/oracle/pricefeed/factory/PriceFeedFactory.vy",
+            price_feed_blueprint.address,
+        )
 
 
 @pytest.fixture()
 def premium_oracle_blueprint(deployer):
     with boa.env.prank(deployer):
-        return boa.load_partial("contracts/oracle/premium/PremiumOracle.vy").deploy_as_blueprint()
+        return boa.load_partial(
+            "contracts/oracle/premium/PremiumOracle.vy"
+        ).deploy_as_blueprint()
 
 
 @pytest.fixture()
 def premium_oracle_factory(deployer, premium_oracle_blueprint):
     with boa.env.prank(deployer):
-        return boa.load("contracts/oracle/premium/factory/PremiumOracleFactory.vy", premium_oracle_blueprint.address)
+        return boa.load(
+            "contracts/oracle/premium/factory/PremiumOracleFactory.vy",
+            premium_oracle_blueprint.address,
+        )
 
 
 @pytest.fixture()
 def collateral_manager_blueprint(deployer):
     with boa.env.prank(deployer):
-        return boa.load_partial("contracts/collateral/CollateralManager.vy").deploy_as_blueprint()
+        return boa.load_partial(
+            "contracts/collateral/CollateralManager.vy"
+        ).deploy_as_blueprint()
 
 
 @pytest.fixture()
 def collateral_manager_factory(deployer, collateral_manager_blueprint):
     with boa.env.prank(deployer):
-        return boa.load("contracts/collateral/factory/CollateralManagerFactory.vy", collateral_manager_blueprint.address)
+        return boa.load(
+            "contracts/collateral/factory/CollateralManagerFactory.vy",
+            collateral_manager_blueprint.address,
+        )
 
 
 @pytest.fixture()
 def lending_pool_blueprint(deployer):
     with boa.env.prank(deployer):
-        return boa.load_partial("contracts/lending/LendingPool.vy").deploy_as_blueprint()
+        return boa.load_partial(
+            "contracts/lending/LendingPool.vy"
+        ).deploy_as_blueprint()
 
 
 @pytest.fixture()
 def lending_pool_factory(deployer, lending_pool_blueprint):
     with boa.env.prank(deployer):
-        return boa.load("contracts/lending/factory/LendingPoolFactory.vy", lending_pool_blueprint.address)
+        return boa.load(
+            "contracts/lending/factory/LendingPoolFactory.vy",
+            lending_pool_blueprint.address,
+        )
 
 
 @pytest.fixture()
 def liquidator_blueprint(deployer):
     with boa.env.prank(deployer):
-        return boa.load_partial("contracts/liquidation/Liquidator.vy").deploy_as_blueprint()
+        return boa.load_partial(
+            "contracts/liquidation/Liquidator.vy"
+        ).deploy_as_blueprint()
 
 
 @pytest.fixture()
 def liquidator_factory(deployer, liquidator_blueprint):
     with boa.env.prank(deployer):
-        return boa.load("contracts/liquidation/factory/LiquidatorFactory.vy", liquidator_blueprint.address)
+        return boa.load(
+            "contracts/liquidation/factory/LiquidatorFactory.vy",
+            liquidator_blueprint.address,
+        )

@@ -8,9 +8,15 @@ def test_initial_state(lending_pool_factory, lending_pool_blueprint, deployer):
 
 
 def test_deploy_pool(
-    lending_pool_factory, deployer, condition_id,
-    mock_usdc, collateral_manager, premium_oracle,
-    interest_rate_model, market_registry, price_feed,
+    lending_pool_factory,
+    deployer,
+    condition_id,
+    mock_usdc,
+    collateral_manager,
+    premium_oracle,
+    interest_rate_model,
+    market_registry,
+    price_feed,
 ):
     with boa.env.prank(deployer):
         pool_addr = lending_pool_factory.deploy_pool(
@@ -31,9 +37,15 @@ def test_deploy_pool(
 
 
 def test_deploy_pool_non_owner_reverts(
-    lending_pool_factory, lender, condition_id,
-    mock_usdc, collateral_manager, premium_oracle,
-    interest_rate_model, market_registry, price_feed,
+    lending_pool_factory,
+    lender,
+    condition_id,
+    mock_usdc,
+    collateral_manager,
+    premium_oracle,
+    interest_rate_model,
+    market_registry,
+    price_feed,
 ):
     with boa.reverts():
         with boa.env.prank(lender):
@@ -51,9 +63,15 @@ def test_deploy_pool_non_owner_reverts(
 
 
 def test_deploy_pool_duplicate_reverts(
-    lending_pool_factory, deployer, condition_id,
-    mock_usdc, collateral_manager, premium_oracle,
-    interest_rate_model, market_registry, price_feed,
+    lending_pool_factory,
+    deployer,
+    condition_id,
+    mock_usdc,
+    collateral_manager,
+    premium_oracle,
+    interest_rate_model,
+    market_registry,
+    price_feed,
 ):
     with boa.env.prank(deployer):
         lending_pool_factory.deploy_pool(

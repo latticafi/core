@@ -11,11 +11,10 @@ import argparse
 import os
 import sys
 from pathlib import Path
-from eth_account import Account
-
-import yaml
 
 import boa
+import yaml
+from eth_account import Account
 
 ROOT = Path(__file__).resolve().parent.parent
 SETTINGS_DIR = ROOT / "settings"

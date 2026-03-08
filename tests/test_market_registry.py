@@ -1,6 +1,5 @@
 import boa
 
-
 RESOLUTION_TIME = 2_000_000_000
 COLLATERAL_FACTOR = 7000
 MAX_EXPOSURE = 500_000 * 10**6
@@ -34,7 +33,11 @@ def test_onboard_market_non_owner_reverts(market_registry, lender, condition_id)
     with boa.env.prank(lender):
         with boa.reverts():
             market_registry.onboard_market(
-                condition_id, RESOLUTION_TIME, COLLATERAL_FACTOR, MAX_EXPOSURE, MIN_LIQUIDITY
+                condition_id,
+                RESOLUTION_TIME,
+                COLLATERAL_FACTOR,
+                MAX_EXPOSURE,
+                MIN_LIQUIDITY,
             )
 
 
@@ -43,7 +46,11 @@ def test_onboard_duplicate_reverts(market_registry, deployer, condition_id):
     with boa.env.prank(deployer):
         with boa.reverts("market already registered"):
             market_registry.onboard_market(
-                condition_id, RESOLUTION_TIME, COLLATERAL_FACTOR, MAX_EXPOSURE, MIN_LIQUIDITY
+                condition_id,
+                RESOLUTION_TIME,
+                COLLATERAL_FACTOR,
+                MAX_EXPOSURE,
+                MIN_LIQUIDITY,
             )
 
 

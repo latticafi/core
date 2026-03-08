@@ -8,9 +8,15 @@ def test_initial_state(liquidator_factory, liquidator_blueprint, deployer):
 
 
 def test_deploy_liquidator(
-    liquidator_factory, deployer, condition_id,
-    lending_pool, collateral_manager, price_feed,
-    mock_usdc, mock_ctf, setup_market,
+    liquidator_factory,
+    deployer,
+    condition_id,
+    lending_pool,
+    collateral_manager,
+    price_feed,
+    mock_usdc,
+    mock_ctf,
+    setup_market,
 ):
     with boa.env.prank(deployer):
         liq_addr = liquidator_factory.deploy_liquidator(
@@ -29,9 +35,15 @@ def test_deploy_liquidator(
 
 
 def test_deploy_liquidator_non_owner_reverts(
-    liquidator_factory, lender, condition_id,
-    lending_pool, collateral_manager, price_feed,
-    mock_usdc, mock_ctf, setup_market,
+    liquidator_factory,
+    lender,
+    condition_id,
+    lending_pool,
+    collateral_manager,
+    price_feed,
+    mock_usdc,
+    mock_ctf,
+    setup_market,
 ):
     with boa.reverts():
         with boa.env.prank(lender):
@@ -47,9 +59,15 @@ def test_deploy_liquidator_non_owner_reverts(
 
 
 def test_deploy_liquidator_duplicate_reverts(
-    liquidator_factory, deployer, condition_id,
-    lending_pool, collateral_manager, price_feed,
-    mock_usdc, mock_ctf, setup_market,
+    liquidator_factory,
+    deployer,
+    condition_id,
+    lending_pool,
+    collateral_manager,
+    price_feed,
+    mock_usdc,
+    mock_ctf,
+    setup_market,
 ):
     with boa.env.prank(deployer):
         liquidator_factory.deploy_liquidator(
@@ -76,7 +94,9 @@ def test_deploy_liquidator_duplicate_reverts(
 
 
 def test_set_implementation(liquidator_factory, deployer):
-    new_bp = boa.load_partial("contracts/liquidation/Liquidator.vy").deploy_as_blueprint()
+    new_bp = boa.load_partial(
+        "contracts/liquidation/Liquidator.vy"
+    ).deploy_as_blueprint()
     with boa.env.prank(deployer):
         liquidator_factory.set_implementation(new_bp.address)
     assert liquidator_factory.implementation() == new_bp.address
