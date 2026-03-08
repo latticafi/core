@@ -3,8 +3,8 @@ Deploy Lattica core contracts.
 
 Usage:
     uv run python scripts/deploy.py local polymarket
-    infisical run --env=dev -- uv run python scripts/deploy.py amoy polymarket
-    infisical run --env=prod -- uv run python scripts/deploy.py polygon polymarket
+    vlt run --env=dev -- uv run python scripts/deploy.py amoy polymarket
+    vlt run --env=prod -- uv run python scripts/deploy.py polygon polymarket
 """
 
 import argparse
@@ -58,7 +58,7 @@ def deploy(chain, market):
                 "ERROR: RPC_URL and DEPLOYER_PRIVATE_KEY required for non-local deploy."
             )
             print(
-                "Run via: infisical run --env=dev -- uv run python scripts/deploy.py <chain> <market>"
+                "Run via: vlt run --env=dev -- uv run python scripts/deploy.py <chain> <market>"
             )
             sys.exit(1)
 
@@ -86,17 +86,35 @@ def deploy(chain, market):
     )
     pool_views = boa.load("contracts/lending/LendingPoolViews.vy")
 
-    pf_bp = boa.load_partial("contracts/oracle/pricefeed/PriceFeed.vy").deploy_as_blueprint()
-    po_bp = boa.load_partial("contracts/oracle/premium/PremiumOracle.vy").deploy_as_blueprint()
-    cm_bp = boa.load_partial("contracts/collateral/CollateralManager.vy").deploy_as_blueprint()
+    pf_bp = boa.load_partial(
+        "contracts/oracle/pricefeed/PriceFeed.vy"
+    ).deploy_as_blueprint()
+    po_bp = boa.load_partial(
+        "contracts/oracle/premium/PremiumOracle.vy"
+    ).deploy_as_blueprint()
+    cm_bp = boa.load_partial(
+        "contracts/collateral/CollateralManager.vy"
+    ).deploy_as_blueprint()
     lp_bp = boa.load_partial("contracts/lending/LendingPool.vy").deploy_as_blueprint()
-    liq_bp = boa.load_partial("contracts/liquidation/Liquidator.vy").deploy_as_blueprint()
+    liq_bp = boa.load_partial(
+        "contracts/liquidation/Liquidator.vy"
+    ).deploy_as_blueprint()
 
-    pf_factory = boa.load("contracts/oracle/pricefeed/factory/PriceFeedFactory.vy", pf_bp.address)
-    po_factory = boa.load("contracts/oracle/premium/factory/PremiumOracleFactory.vy", po_bp.address)
-    cm_factory = boa.load("contracts/collateral/factory/CollateralManagerFactory.vy", cm_bp.address)
-    lp_factory = boa.load("contracts/lending/factory/LendingPoolFactory.vy", lp_bp.address)
-    liq_factory = boa.load("contracts/liquidation/factory/LiquidatorFactory.vy", liq_bp.address)
+    pf_factory = boa.load(
+        "contracts/oracle/pricefeed/factory/PriceFeedFactory.vy", pf_bp.address
+    )
+    po_factory = boa.load(
+        "contracts/oracle/premium/factory/PremiumOracleFactory.vy", po_bp.address
+    )
+    cm_factory = boa.load(
+        "contracts/collateral/factory/CollateralManagerFactory.vy", cm_bp.address
+    )
+    lp_factory = boa.load(
+        "contracts/lending/factory/LendingPoolFactory.vy", lp_bp.address
+    )
+    liq_factory = boa.load(
+        "contracts/liquidation/factory/LiquidatorFactory.vy", liq_bp.address
+    )
 
     address_provider.set_address(0, lp_factory.address)
     address_provider.set_address(1, cm_factory.address)
@@ -109,17 +127,20 @@ def deploy(chain, market):
     address_provider.set_address(8, chain_cfg["usdc_e"])
     address_provider.set_address(9, market_cfg[chain]["ctf"])
 
-    save_deployment(chain, {
-        "address_provider": str(address_provider.address),
-        "market_registry": str(market_registry.address),
-        "interest_rate_model": str(interest_model.address),
-        "lending_pool_views": str(pool_views.address),
-        "lending_pool_factory": str(lp_factory.address),
-        "collateral_manager_factory": str(cm_factory.address),
-        "liquidator_factory": str(liq_factory.address),
-        "price_feed_factory": str(pf_factory.address),
-        "premium_oracle_factory": str(po_factory.address),
-    })
+    save_deployment(
+        chain,
+        {
+            "address_provider": str(address_provider.address),
+            "market_registry": str(market_registry.address),
+            "interest_rate_model": str(interest_model.address),
+            "lending_pool_views": str(pool_views.address),
+            "lending_pool_factory": str(lp_factory.address),
+            "collateral_manager_factory": str(cm_factory.address),
+            "liquidator_factory": str(liq_factory.address),
+            "price_feed_factory": str(pf_factory.address),
+            "premium_oracle_factory": str(po_factory.address),
+        },
+    )
 
 
 if __name__ == "__main__":
