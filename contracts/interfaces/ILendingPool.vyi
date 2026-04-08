@@ -1,0 +1,30 @@
+# pragma version ~=0.4.0
+
+@external
+def deposit(amount: uint256) -> uint256: nonpayable
+
+@external
+def withdraw(shares: uint256) -> uint256: nonpayable
+
+@external
+def borrow(condition_id: bytes32, collateral_amount: uint256, borrow_amount: uint256, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> uint256: nonpayable
+
+@external
+def repay(loan_id: uint256): nonpayable
+
+@external
+def roll_loan(old_loan_id: uint256, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> uint256: nonpayable
+
+@external
+def trigger_liquidation(loan_id: uint256): nonpayable
+
+@external
+def claim_expired(loan_id: uint256): nonpayable
+
+@external
+@view
+def owner() -> address: view
+
+@external
+@view
+def paused() -> bool: view

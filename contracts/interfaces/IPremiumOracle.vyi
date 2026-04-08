@@ -1,0 +1,14 @@
+# pragma version ~=0.4.0
+
+@external
+def verify_quote(borrower: address, condition_id: bytes32, premium_bps: uint256, amount: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> bool: nonpayable
+
+@external
+@view
+def get_nonce(borrower: address) -> uint256: view
+
+@external
+def set_paused(_paused: bool): nonpayable
+
+@external
+def set_pricer(new_pricer: address): nonpayable

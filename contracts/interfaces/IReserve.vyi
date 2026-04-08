@@ -1,0 +1,23 @@
+# pragma version ~=0.4.0
+
+@external
+def deposit(amount: uint256): nonpayable
+
+@external
+def cover_loss(amount: uint256) -> uint256: nonpayable
+
+@external
+@view
+def current_retention_bps() -> uint256: view
+
+@external
+@view
+def reserve_balance() -> uint256: view
+
+@external
+@view
+def reserve_target() -> uint256: view
+
+@external
+@view
+def is_healthy() -> bool: view

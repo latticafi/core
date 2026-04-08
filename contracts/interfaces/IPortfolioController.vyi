@@ -1,0 +1,27 @@
+# pragma version ~=0.4.0
+
+@external
+@view
+def check_capacity(condition_id: bytes32, amount: uint256, epoch_end: uint256) -> bool: view
+
+@external
+def record_origination(condition_id: bytes32, amount: uint256, epoch_end: uint256): nonpayable
+
+@external
+def record_settlement(condition_id: bytes32, amount: uint256, loss: uint256, epoch_end: uint256): nonpayable
+
+@external
+@view
+def is_circuit_broken() -> bool: view
+
+@external
+@view
+def total_exposure() -> uint256: view
+
+@external
+@view
+def max_total_exposure() -> uint256: view
+
+@external
+@view
+def condition_exposure(condition_id: bytes32) -> uint256: view
