@@ -1,8 +1,0 @@
-# @version ^0.4.3
-
-"""
-@title IConditionalTokens
-@notice Interface for Gnosis CTF (ERC1155).
-@dev    Deployed at 0x4D97DCd97eC945f40cF65F87097ACe5EA0476045 (Polygon).
-        See: https://docs.gnosis.io/conditionaltokens/
-"""
