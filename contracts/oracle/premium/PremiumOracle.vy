@@ -10,14 +10,17 @@ exports: (
     ownable.owner,
 )
 
+
 event QuoteConsumed:
     condition_id: bytes32
     borrower: address
     premium_bps: uint256
     amount: uint256
 
+
 event PricerUpdated:
     new_pricer: address
+
 
 MAX_BPS: constant(uint256) = 10000
 
@@ -36,6 +39,7 @@ authorized_pool: public(address)
 nonces: public(HashMap[address, uint256])
 DOMAIN_SEPARATOR: public(bytes32)
 
+
 @deploy
 def __init__(_condition_id: bytes32, _authorized_pricer: address):
     ownable.__init__()
@@ -51,6 +55,7 @@ def __init__(_condition_id: bytes32, _authorized_pricer: address):
             self,
         )
     )
+
 
 @external
 def verify_and_consume(
@@ -100,11 +105,13 @@ def verify_and_consume(
     )
     return premium_bps
 
+
 @external
 def set_authorized_pool(pool: address):
     ownable._check_owner()
     assert pool != empty(address), "invalid pool"
     self.authorized_pool = pool
+
 
 @external
 def set_authorized_pricer(new_pricer: address):
@@ -112,6 +119,7 @@ def set_authorized_pricer(new_pricer: address):
     assert new_pricer != empty(address), "invalid pricer"
     self.authorized_pricer = new_pricer
     log PricerUpdated(new_pricer=new_pricer)
+
 
 @view
 @external

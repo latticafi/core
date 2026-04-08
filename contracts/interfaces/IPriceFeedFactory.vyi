@@ -1,12 +1,22 @@
 # pragma version ~=0.4.3
 
+
 @external
-def deploy_feed(condition_id: bytes32, authorized_updater: address, deviation_threshold_bps: uint256, staleness_limit: uint256, circuit_breaker_threshold_bps: uint256, circuit_breaker_cooldown: uint256) -> address:
+def deploy_feed(
+    condition_id: bytes32,
+    authorized_updater: address,
+    deviation_threshold_bps: uint256,
+    staleness_limit: uint256,
+    circuit_breaker_threshold_bps: uint256,
+    circuit_breaker_cooldown: uint256,
+) -> address:
     ...
+
 
 @external
 def set_implementation(new_impl: address):
     ...
+
 
 @external
 @view

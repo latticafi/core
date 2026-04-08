@@ -1,12 +1,23 @@
 # pragma version ~=0.4.3
 
+
 @external
-def deploy_liquidator(condition_id: bytes32, lending_pool: address, collateral_manager: address, price_feed: address, usdc_e: address, ctf: address, liquidation_fee_bps: uint256) -> address:
+def deploy_liquidator(
+    condition_id: bytes32,
+    lending_pool: address,
+    collateral_manager: address,
+    price_feed: address,
+    usdc_e: address,
+    ctf: address,
+    liquidation_fee_bps: uint256,
+) -> address:
     ...
+
 
 @external
 def set_implementation(new_impl: address):
     ...
+
 
 @external
 @view

@@ -1,10 +1,17 @@
 # pragma version ~=0.4.3
 
+
 @external
 @view
 def get_rate(utilization_bps: uint256) -> uint256:
     ...
 
+
 @external
-def set_params(base_rate_bps: uint256, optimal_utilization_bps: uint256, slope1_bps: uint256, slope2_bps: uint256):
+def set_params(
+    base_rate_bps: uint256,
+    optimal_utilization_bps: uint256,
+    slope1_bps: uint256,
+    slope2_bps: uint256,
+):
     ...

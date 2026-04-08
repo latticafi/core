@@ -1,12 +1,13 @@
 import boa
-import pytest
-from eth_utils import keccak
+from eth_utils.crypto import keccak as keccak256
 
-POOL_ROLE: bytes = keccak(b"POOL_ROLE")
-LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
+POOL_ROLE: bytes = keccak256(b"POOL_ROLE")
+LIQUIDATOR_ROLE: bytes = keccak256(b"LIQUIDATOR_ROLE")
 
 
-def test_initial_state(collateral_manager, condition_id, mock_ctf, price_feed, market_registry):
+def test_initial_state(
+    collateral_manager, condition_id, mock_ctf, price_feed, market_registry
+):
     assert collateral_manager.condition_id() == condition_id
     assert collateral_manager.ctf() == mock_ctf.address
     assert collateral_manager.price_feed() == price_feed.address
@@ -142,7 +143,5 @@ def test_get_health_factor(
 
 
 def test_onERC1155Received(collateral_manager, deployer):
-    result = collateral_manager.onERC1155Received(
-        deployer, deployer, 0, 0, b""
-    )
+    result = collateral_manager.onERC1155Received(deployer, deployer, 0, 0, b"")
     assert result == bytes.fromhex("f23a6e61")

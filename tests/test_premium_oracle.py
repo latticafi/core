@@ -1,15 +1,21 @@
 import boa
 import pytest
 from eth_account import Account as EthAccount
-from eth_account.messages import encode_typed_data
 
 PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 OTHER_KEY = "0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d"
 
 
 def sign_premium_quote(
-    pricer_key, oracle_address, borrower, condition_id,
-    premium_bps, amount, deadline, nonce, chain_id=1,
+    pricer_key,
+    oracle_address,
+    borrower,
+    condition_id,
+    premium_bps,
+    amount,
+    deadline,
+    nonce,
+    chain_id=1,
 ):
     domain_data = {
         "name": "LatticaPremiumOracle",
@@ -29,7 +35,9 @@ def sign_premium_quote(
     }
     message_data = {
         "borrower": borrower,
-        "conditionId": "0x" + condition_id.hex() if isinstance(condition_id, bytes) else condition_id,
+        "conditionId": "0x" + condition_id.hex()
+        if isinstance(condition_id, bytes)
+        else condition_id,
         "premiumBps": premium_bps,
         "amount": amount,
         "deadline": deadline,
@@ -57,7 +65,9 @@ def test_initial_state(premium_oracle, condition_id, pricer):
     assert premium_oracle.DOMAIN_SEPARATOR() != b"\x00" * 32
 
 
-def test_verify_and_consume_valid(premium_oracle, pricer, deployer, test_borrower, condition_id):
+def test_verify_and_consume_valid(
+    premium_oracle, pricer, deployer, test_borrower, condition_id
+):
     mock_pool = boa.env.generate_address("mock_pool")
     with boa.env.prank(deployer):
         premium_oracle.set_authorized_pool(mock_pool)
@@ -68,8 +78,14 @@ def test_verify_and_consume_valid(premium_oracle, pricer, deployer, test_borrowe
     nonce = premium_oracle.get_nonce(test_borrower)
 
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), premium_bps, amount, deadline, nonce,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        premium_bps,
+        amount,
+        deadline,
+        nonce,
     )
 
     with boa.env.prank(mock_pool):
@@ -88,8 +104,14 @@ def test_verify_and_consume_expired_reverts(premium_oracle, deployer, test_borro
 
     deadline = 1
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 500, 10_000 * 10**6, deadline, 0,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        500,
+        10_000 * 10**6,
+        deadline,
+        0,
     )
 
     with boa.reverts("quote expired"):
@@ -99,14 +121,22 @@ def test_verify_and_consume_expired_reverts(premium_oracle, deployer, test_borro
             )
 
 
-def test_verify_and_consume_wrong_signer_reverts(premium_oracle, deployer, test_borrower):
+def test_verify_and_consume_wrong_signer_reverts(
+    premium_oracle, deployer, test_borrower
+):
     mock_pool = boa.env.generate_address("mock_pool")
     with boa.env.prank(deployer):
         premium_oracle.set_authorized_pool(mock_pool)
 
     sig = sign_premium_quote(
-        OTHER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 500, 10_000 * 10**6, 2_000_000_000, 0,
+        OTHER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        500,
+        10_000 * 10**6,
+        2_000_000_000,
+        0,
     )
 
     with boa.reverts("invalid signer"):
@@ -122,8 +152,14 @@ def test_verify_and_consume_replay_reverts(premium_oracle, deployer, test_borrow
         premium_oracle.set_authorized_pool(mock_pool)
 
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 500, 10_000 * 10**6, 2_000_000_000, 0,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        500,
+        10_000 * 10**6,
+        2_000_000_000,
+        0,
     )
 
     with boa.env.prank(mock_pool):
@@ -138,14 +174,22 @@ def test_verify_and_consume_replay_reverts(premium_oracle, deployer, test_borrow
             )
 
 
-def test_verify_and_consume_wrong_amount_reverts(premium_oracle, deployer, test_borrower):
+def test_verify_and_consume_wrong_amount_reverts(
+    premium_oracle, deployer, test_borrower
+):
     mock_pool = boa.env.generate_address("mock_pool")
     with boa.env.prank(deployer):
         premium_oracle.set_authorized_pool(mock_pool)
 
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 500, 10_000 * 10**6, 2_000_000_000, 0,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        500,
+        10_000 * 10**6,
+        2_000_000_000,
+        0,
     )
 
     with boa.reverts("invalid signer"):
@@ -157,8 +201,14 @@ def test_verify_and_consume_wrong_amount_reverts(premium_oracle, deployer, test_
 
 def test_verify_and_consume_not_pool_reverts(premium_oracle, lender, test_borrower):
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 500, 10_000 * 10**6, 2_000_000_000, 0,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        500,
+        10_000 * 10**6,
+        2_000_000_000,
+        0,
     )
 
     with boa.reverts("not authorized"):
@@ -168,14 +218,22 @@ def test_verify_and_consume_not_pool_reverts(premium_oracle, lender, test_borrow
             )
 
 
-def test_verify_and_consume_premium_exceeds_max_reverts(premium_oracle, deployer, test_borrower):
+def test_verify_and_consume_premium_exceeds_max_reverts(
+    premium_oracle, deployer, test_borrower
+):
     mock_pool = boa.env.generate_address("mock_pool")
     with boa.env.prank(deployer):
         premium_oracle.set_authorized_pool(mock_pool)
 
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, test_borrower,
-        premium_oracle.condition_id(), 10001, 10_000 * 10**6, 2_000_000_000, 0,
+        PRICER_KEY,
+        premium_oracle.address,
+        test_borrower,
+        premium_oracle.condition_id(),
+        10001,
+        10_000 * 10**6,
+        2_000_000_000,
+        0,
     )
 
     with boa.reverts("premium exceeds max"):

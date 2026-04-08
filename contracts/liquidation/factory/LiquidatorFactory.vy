@@ -14,12 +14,15 @@ exports: (
     ownable_2step.pending_owner,
 )
 
+
 event LiquidatorDeployed:
     condition_id: bytes32
     liquidator: address
 
+
 event ImplementationUpdated:
     implementation: address
+
 
 implementation: public(address)
 liq_count: public(uint256)
@@ -46,7 +49,9 @@ def deploy_liquidator(
     liquidation_fee_bps: uint256,
 ) -> address:
     ownable._check_owner()
-    assert self.liq_by_market[condition_id] == empty(address), "liquidator exists"
+    assert self.liq_by_market[condition_id] == empty(
+        address
+    ), "liquidator exists"
 
     liq: address = create_from_blueprint(
         self.implementation,

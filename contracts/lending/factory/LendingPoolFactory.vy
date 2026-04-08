@@ -14,12 +14,15 @@ exports: (
     ownable_2step.pending_owner,
 )
 
+
 event PoolDeployed:
     condition_id: bytes32
     pool: address
 
+
 event ImplementationUpdated:
     implementation: address
+
 
 implementation: public(address)
 pool_count: public(uint256)

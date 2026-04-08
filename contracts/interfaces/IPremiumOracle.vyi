@@ -1,16 +1,26 @@
 # pragma version ~=0.4.3
 
+
 @external
-def verify_and_consume(borrower: address, premium_bps: uint256, amount: uint256, deadline: uint256, signature: Bytes[65]) -> uint256:
+def verify_and_consume(
+    borrower: address,
+    premium_bps: uint256,
+    amount: uint256,
+    deadline: uint256,
+    signature: Bytes[65],
+) -> uint256:
     ...
+
 
 @external
 def set_authorized_pool(pool: address):
     ...
 
+
 @external
 def set_authorized_pricer(new_pricer: address):
     ...
+
 
 @external
 @view

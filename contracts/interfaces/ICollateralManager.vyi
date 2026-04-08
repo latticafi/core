@@ -1,21 +1,26 @@
 # pragma version ~=0.4.3
 
+
 @external
 def deposit_collateral(borrower: address, amount: uint256, token_id: uint256):
     ...
+
 
 @external
 def release_collateral(borrower: address):
     ...
 
+
 @external
 def seize_collateral(borrower: address) -> uint256:
     ...
+
 
 @external
 @view
 def get_health_factor(borrower: address) -> uint256:
     ...
+
 
 @external
 def set_debt(borrower: address, debt: uint256):

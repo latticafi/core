@@ -15,35 +15,55 @@ exports: (
     access_control.DEFAULT_ADMIN_ROLE,
 )
 
+
 interface IERC20:
     def transfer(_to: address, _amount: uint256) -> bool: nonpayable
-    def transferFrom(_from: address, _to: address, _amount: uint256) -> bool: nonpayable
+    def transferFrom(
+        _from: address, _to: address, _amount: uint256
+    ) -> bool: nonpayable
     def balanceOf(_account: address) -> uint256: view
 
+
 interface ICollateralManager:
-    def deposit_collateral(_borrower: address, _amount: uint256, _token_id: uint256): nonpayable
+    def deposit_collateral(
+        _borrower: address, _amount: uint256, _token_id: uint256
+    ): nonpayable
     def release_collateral(_borrower: address): nonpayable
     def set_debt(_borrower: address, _debt: uint256): nonpayable
     def get_health_factor(_borrower: address) -> uint256: view
 
+
 interface IPremiumOracle:
-    def verify_and_consume(_borrower: address, _premium_bps: uint256, _amount: uint256, _deadline: uint256, _signature: Bytes[65]) -> uint256: nonpayable
+    def verify_and_consume(
+        _borrower: address,
+        _premium_bps: uint256,
+        _amount: uint256,
+        _deadline: uint256,
+        _signature: Bytes[65],
+    ) -> uint256: nonpayable
+
 
 interface IInterestRateModel:
     def get_rate(_utilization_bps: uint256) -> uint256: view
+
 
 interface IPriceFeed:
     def get_price() -> (uint256, bool): view
     def is_circuit_breaker_active() -> bool: view
 
+
 interface IMarketRegistry:
-    def get_market_params(_condition_id: bytes32) -> (uint256, uint256, uint256, uint256, uint256, bool, bool): view
+    def get_market_params(_condition_id: bytes32) -> (
+        uint256, uint256, uint256, uint256, uint256, bool, bool
+    ): view
     def get_cutoff(_condition_id: bytes32) -> uint256: view
+
 
 flag PoolState:
     OPEN
     PAUSED
     CUTOFF
+
 
 struct Loan:
     principal: uint256
@@ -53,15 +73,18 @@ struct Loan:
     epoch_end: uint256
     is_active: bool
 
+
 event Deposit:
     lender: address
     amount: uint256
     shares: uint256
 
+
 event Withdraw:
     lender: address
     amount: uint256
     shares: uint256
+
 
 event Borrow:
     borrower: address
@@ -71,21 +94,26 @@ event Borrow:
     rate_bps: uint256
     duration: uint256
 
+
 event Repay:
     borrower: address
     amount: uint256
+
 
 event LiquidationSettled:
     borrower: address
     recovered: uint256
 
+
 event ShortfallCovered:
     borrower: address
     shortfall: uint256
 
+
 event LoanDurationBoundsUpdated:
     min_duration: uint256
     max_duration: uint256
+
 
 LIQUIDATOR_ROLE: constant(bytes32) = keccak256("LIQUIDATOR_ROLE")
 MAX_BPS: constant(uint256) = 10000
@@ -146,8 +174,7 @@ def __init__(
 def deposit(amount: uint256):
     assert amount > 0, "zero amount"
     assert (
-        self.pool_state == PoolState.OPEN
-        or self.pool_state == PoolState.PAUSED
+        self.pool_state == PoolState.OPEN or self.pool_state == PoolState.PAUSED
     ), "deposits disabled"
     extcall IERC20(self.usdc_e).transferFrom(msg.sender, self, amount)
     new_shares: uint256 = 0
@@ -178,21 +205,30 @@ def withdraw(share_amount: uint256):
 
 @nonreentrant
 @external
-def borrow(amount: uint256, borrower: address, duration: uint256, premium_bps: uint256, deadline: uint256, signature: Bytes[65]):
+def borrow(
+    amount: uint256,
+    borrower: address,
+    duration: uint256,
+    premium_bps: uint256,
+    deadline: uint256,
+    signature: Bytes[65],
+):
     assert self.pool_state == PoolState.OPEN, "not open"
     assert amount > 0, "zero amount"
     assert not self.loans[borrower].is_active, "loan exists"
     assert duration >= self.min_loan_duration, "duration too short"
     assert duration <= self.max_loan_duration, "duration too long"
 
-    cutoff: uint256 = staticcall IMarketRegistry(self.market_registry).get_cutoff(
-        self.condition_id
-    )
+    cutoff: uint256 = staticcall IMarketRegistry(
+        self.market_registry
+    ).get_cutoff(self.condition_id)
     assert block.timestamp < cutoff, "past cutoff"
 
-    params: (uint256, uint256, uint256, uint256, uint256, bool, bool) = staticcall IMarketRegistry(
-        self.market_registry
-    ).get_market_params(self.condition_id)
+    params: (
+        uint256, uint256, uint256, uint256, uint256, bool, bool
+    ) = staticcall IMarketRegistry(self.market_registry).get_market_params(
+        self.condition_id
+    )
     assert params[5], "market not active"
     assert not params[6], "market paused"
     assert self.total_borrowed + amount <= params[1], "exposure cap exceeded"
@@ -202,21 +238,23 @@ def borrow(amount: uint256, borrower: address, duration: uint256, premium_bps: u
     price, is_stale = staticcall IPriceFeed(self.price_feed).get_price()
     assert not is_stale, "price is stale"
     assert price > 0, "no price"
-    assert not staticcall IPriceFeed(self.price_feed).is_circuit_breaker_active(), "circuit breaker active"
+    assert not staticcall IPriceFeed(
+        self.price_feed
+    ).is_circuit_breaker_active(), "circuit breaker active"
 
     available: uint256 = self.total_deposits - self.total_borrowed
     assert amount <= available, "insufficient liquidity"
 
     new_borrowed: uint256 = self.total_borrowed + amount
     utilization: uint256 = (new_borrowed * MAX_BPS) // self.total_deposits
-    rate_bps: uint256 = staticcall IInterestRateModel(self.interest_rate_model).get_rate(
-        utilization
-    )
+    rate_bps: uint256 = staticcall IInterestRateModel(
+        self.interest_rate_model
+    ).get_rate(utilization)
     interest: uint256 = (amount * rate_bps) // MAX_BPS
 
-    verified_premium_bps: uint256 = extcall IPremiumOracle(self.premium_oracle).verify_and_consume(
-        borrower, premium_bps, amount, deadline, signature
-    )
+    verified_premium_bps: uint256 = extcall IPremiumOracle(
+        self.premium_oracle
+    ).verify_and_consume(borrower, premium_bps, amount, deadline, signature)
     premium: uint256 = (amount * verified_premium_bps) // MAX_BPS
 
     net: uint256 = amount - interest - premium
@@ -239,8 +277,12 @@ def borrow(amount: uint256, borrower: address, duration: uint256, premium_bps: u
         is_active=True,
     )
 
-    extcall ICollateralManager(self.collateral_manager).set_debt(borrower, amount)
-    health: uint256 = staticcall ICollateralManager(self.collateral_manager).get_health_factor(borrower)
+    extcall ICollateralManager(self.collateral_manager).set_debt(
+        borrower, amount
+    )
+    health: uint256 = staticcall ICollateralManager(
+        self.collateral_manager
+    ).get_health_factor(borrower)
     assert health >= 10000, "undercollateralized"
 
     extcall IERC20(self.usdc_e).transfer(borrower, net)
@@ -262,7 +304,9 @@ def repay(borrower: address):
     self.total_borrowed -= loan.principal
     self.loans[borrower].is_active = False
     extcall IERC20(self.usdc_e).transferFrom(msg.sender, self, loan.principal)
-    extcall ICollateralManager(self.collateral_manager).release_collateral(borrower)
+    extcall ICollateralManager(self.collateral_manager).release_collateral(
+        borrower
+    )
     log Repay(borrower=borrower, amount=loan.principal)
 
 
@@ -311,7 +355,9 @@ def set_loan_duration_bounds(min_duration: uint256, max_duration: uint256):
     assert max_duration >= min_duration, "max < min duration"
     self.min_loan_duration = min_duration
     self.max_loan_duration = max_duration
-    log LoanDurationBoundsUpdated(min_duration=min_duration, max_duration=max_duration)
+    log LoanDurationBoundsUpdated(
+        min_duration=min_duration, max_duration=max_duration
+    )
 
 
 @external

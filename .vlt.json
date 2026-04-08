@@ -1,0 +1,10 @@
+{
+  "addr": "https://vault.lattica.xyz",
+  "project": "core",
+  "environments": {
+    "dev": "secret/data/dev/core",
+    "staging": "secret/data/staging/core",
+    "prod": "secret/data/prod/core"
+  },
+  "default_env": "dev"
+}

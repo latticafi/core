@@ -10,17 +10,20 @@ exports: (
     ownable.owner,
 )
 
+
 event PriceUpdated:
     condition_id: bytes32
     price: uint256
     timestamp: uint256
+
 
 event CircuitBreakerTripped:
     condition_id: bytes32
     price: uint256
     timestamp: uint256
 
-MAX_PRICE: constant(uint256) = 10 ** 18
+
+MAX_PRICE: constant(uint256) = 10**18
 MAX_BPS: constant(uint256) = 10000
 
 condition_id: public(bytes32)
@@ -36,6 +39,7 @@ deviation_threshold_bps: public(uint256)
 staleness_limit: public(uint256)
 circuit_breaker_threshold_bps: public(uint256)
 circuit_breaker_cooldown: public(uint256)
+
 
 @deploy
 def __init__(
@@ -53,6 +57,7 @@ def __init__(
     self.staleness_limit = _staleness_limit
     self.circuit_breaker_threshold_bps = _circuit_breaker_threshold_bps
     self.circuit_breaker_cooldown = _circuit_breaker_cooldown
+
 
 @external
 def push_price(new_price: uint256):
@@ -75,13 +80,14 @@ def push_price(new_price: uint256):
 
         if deviation >= self.circuit_breaker_threshold_bps:
             self.circuit_breaker_tripped = True
-            self.circuit_breaker_reset_time = block.timestamp + self.circuit_breaker_cooldown
+            self.circuit_breaker_reset_time = (
+                block.timestamp + self.circuit_breaker_cooldown
+            )
             log CircuitBreakerTripped(
                 condition_id=self.condition_id,
                 price=new_price,
                 timestamp=block.timestamp,
             )
-
     self.prev_price = self.price
     self.prev_update = self.last_update
     self.price = new_price
@@ -93,6 +99,7 @@ def push_price(new_price: uint256):
         timestamp=block.timestamp,
     )
 
+
 @view
 @external
 def get_price() -> (uint256, bool):
@@ -101,7 +108,11 @@ def get_price() -> (uint256, bool):
         is_stale = (block.timestamp - self.last_update) > self.staleness_limit
     return (self.price, is_stale)
 
+
 @view
 @external
 def is_circuit_breaker_active() -> bool:
-    return self.circuit_breaker_tripped and block.timestamp < self.circuit_breaker_reset_time
+    return (
+        self.circuit_breaker_tripped
+        and block.timestamp < self.circuit_breaker_reset_time
+    )

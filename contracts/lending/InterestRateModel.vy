@@ -21,6 +21,7 @@ optimal_utilization_bps: public(uint256)
 slope1_bps: public(uint256)
 slope2_bps: public(uint256)
 
+
 event ParamsUpdated:
     base_rate_bps: uint256
     optimal_utilization_bps: uint256
@@ -37,7 +38,9 @@ def __init__(
 ):
     ownable.__init__()
     ownable_2step.__init__()
-    self._validate_params(_base_rate_bps, _optimal_utilization_bps, _slope1_bps, _slope2_bps)
+    self._validate_params(
+        _base_rate_bps, _optimal_utilization_bps, _slope1_bps, _slope2_bps
+    )
     self.base_rate_bps = _base_rate_bps
     self.optimal_utilization_bps = _optimal_utilization_bps
     self.slope1_bps = _slope1_bps
@@ -51,14 +54,15 @@ def get_rate(utilization_bps: uint256) -> uint256:
 
     if utilization_bps <= self.optimal_utilization_bps:
         return (
-            self.base_rate_bps
-            + (utilization_bps * self.slope1_bps) // MAX_BPS
+            self.base_rate_bps + (utilization_bps * self.slope1_bps) // MAX_BPS
         )
 
     return (
         self.base_rate_bps
         + (self.optimal_utilization_bps * self.slope1_bps) // MAX_BPS
-        + ((utilization_bps - self.optimal_utilization_bps) * self.slope2_bps) // MAX_BPS
+        + (
+            (utilization_bps - self.optimal_utilization_bps) * self.slope2_bps
+        ) // MAX_BPS
     )
 
 
@@ -70,7 +74,9 @@ def set_params(
     _slope2_bps: uint256,
 ):
     ownable._check_owner()
-    self._validate_params(_base_rate_bps, _optimal_utilization_bps, _slope1_bps, _slope2_bps)
+    self._validate_params(
+        _base_rate_bps, _optimal_utilization_bps, _slope1_bps, _slope2_bps
+    )
     self.base_rate_bps = _base_rate_bps
     self.optimal_utilization_bps = _optimal_utilization_bps
     self.slope1_bps = _slope1_bps

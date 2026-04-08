@@ -14,17 +14,21 @@ exports: (
     ownable_2step.pending_owner,
 )
 
+
 event FeedDeployed:
     condition_id: bytes32
     feed: address
 
+
 event ImplementationUpdated:
     implementation: address
+
 
 implementation: public(address)
 feed_count: public(uint256)
 feed_list: public(DynArray[address, 4096])
 feed_by_market: public(HashMap[bytes32, address])
+
 
 @deploy
 def __init__(_implementation: address):
@@ -32,6 +36,7 @@ def __init__(_implementation: address):
     ownable.__init__()
     ownable_2step.__init__()
     self.implementation = _implementation
+
 
 @external
 def deploy_feed(
@@ -63,12 +68,14 @@ def deploy_feed(
     log FeedDeployed(condition_id=condition_id, feed=feed)
     return feed
 
+
 @external
 def set_implementation(new_impl: address):
     ownable._check_owner()
     assert new_impl != empty(address), "empty implementation"
     self.implementation = new_impl
     log ImplementationUpdated(implementation=new_impl)
+
 
 @view
 @external

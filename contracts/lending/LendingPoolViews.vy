@@ -1,5 +1,6 @@
 # pragma version ~=0.4.3
 
+
 interface ILendingPool:
     def total_deposits() -> uint256: view
     def total_borrowed() -> uint256: view

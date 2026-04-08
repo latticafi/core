@@ -1,13 +1,16 @@
 # pragma version ~=0.4.3
 
+
 @external
 @view
 def get_address(id: uint256) -> address:
     ...
 
+
 @external
 def set_address(id: uint256, addr: address):
     ...
+
 
 @external
 @view

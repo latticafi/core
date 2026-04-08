@@ -15,26 +15,44 @@ exports: (
     access_control.DEFAULT_ADMIN_ROLE,
 )
 
+
 interface ILendingPool:
-    def loans(_borrower: address) -> (uint256, uint256, uint256, uint256, uint256, bool): view
-    def handle_liquidation_proceeds(_borrower: address, _recovered: uint256): nonpayable
+    def loans(_borrower: address) -> (
+        uint256, uint256, uint256, uint256, uint256, bool
+    ): view
+    def handle_liquidation_proceeds(
+        _borrower: address, _recovered: uint256
+    ): nonpayable
+
 
 interface ICollateralManager:
     def seize_collateral(_borrower: address) -> uint256: nonpayable
     def get_health_factor(_borrower: address) -> uint256: view
     def positions(_borrower: address) -> (uint256, uint256, uint256): view
 
+
 interface IPriceFeed:
     def get_price() -> (uint256, bool): view
 
+
 interface IERC20:
     def transfer(_to: address, _amount: uint256) -> bool: nonpayable
-    def transferFrom(_from: address, _to: address, _amount: uint256) -> bool: nonpayable
+    def transferFrom(
+        _from: address, _to: address, _amount: uint256
+    ) -> bool: nonpayable
     def balanceOf(_account: address) -> uint256: view
     def approve(_spender: address, _amount: uint256) -> bool: nonpayable
 
+
 interface ICTF:
-    def safeTransferFrom(_from: address, _to: address, _id: uint256, _amount: uint256, _data: Bytes[1024]): nonpayable
+    def safeTransferFrom(
+        _from: address,
+        _to: address,
+        _id: uint256,
+        _amount: uint256,
+        _data: Bytes[1024],
+    ): nonpayable
+
 
 event Liquidated:
     borrower: address
@@ -42,12 +60,14 @@ event Liquidated:
     to_pool: uint256
     fee: uint256
 
+
 event LiquidationFeeUpdated:
     new_fee: uint256
 
+
 HEALTH_THRESHOLD: constant(uint256) = 10000
 MAX_BPS: constant(uint256) = 10000
-PRICE_PRECISION: constant(uint256) = 10 ** 18
+PRICE_PRECISION: constant(uint256) = 10**18
 
 condition_id: public(bytes32)
 lending_pool: public(address)
@@ -94,9 +114,9 @@ def liquidate(borrower: address):
     ).positions(borrower)
     token_id: uint256 = pos_data[1]
 
-    loan_data: (uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
-        self.lending_pool
-    ).loans(borrower)
+    loan_data: (
+        uint256, uint256, uint256, uint256, uint256, bool
+    ) = staticcall ILendingPool(self.lending_pool).loans(borrower)
     principal: uint256 = loan_data[0]
 
     seized: uint256 = extcall ICollateralManager(
@@ -119,7 +139,9 @@ def liquidate(borrower: address):
         borrower, to_pool
     )
 
-    extcall ICTF(self.ctf).safeTransferFrom(self, msg.sender, token_id, seized, b"")
+    extcall ICTF(self.ctf).safeTransferFrom(
+        self, msg.sender, token_id, seized, b""
+    )
 
     log Liquidated(borrower=borrower, seized=seized, to_pool=to_pool, fee=fee)
 
@@ -133,9 +155,9 @@ def is_liquidatable(borrower: address) -> bool:
 @view
 @internal
 def _is_liquidatable(borrower: address) -> bool:
-    loan_data: (uint256, uint256, uint256, uint256, uint256, bool) = staticcall ILendingPool(
-        self.lending_pool
-    ).loans(borrower)
+    loan_data: (
+        uint256, uint256, uint256, uint256, uint256, bool
+    ) = staticcall ILendingPool(self.lending_pool).loans(borrower)
     is_active: bool = loan_data[5]
     if not is_active:
         return False

@@ -13,7 +13,16 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["mamushi", "pytest", "types-PyYAML", "vyper-language-server"]
+dev = [
+    "isort>=8.0.1",
+    "mamushi",
+    "pytest",
+    "ruff",
+    "types-PyYAML",
+    "vyper-language-server",
+]
+lint = ["mamushi", "ruff"]
+test = ["pytest"]
 
 [tool.mamushi]
 line_length = 100

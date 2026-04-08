@@ -1,12 +1,15 @@
 # pragma version ~=0.4.3
 
+
 @external
 def deploy_oracle(condition_id: bytes32, authorized_pricer: address) -> address:
     ...
 
+
 @external
 def set_implementation(new_impl: address):
     ...
+
 
 @external
 @view

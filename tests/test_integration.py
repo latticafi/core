@@ -1,18 +1,23 @@
 import boa
-import pytest
 from eth_account import Account as EthAccount
-from eth_utils import keccak
-from eth_utils import keccak as keccak256
+from eth_utils.crypto import keccak as keccak256
 
-POOL_ROLE: bytes = keccak(b"POOL_ROLE")
-LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
+POOL_ROLE: bytes = keccak256(b"POOL_ROLE")
+LIQUIDATOR_ROLE: bytes = keccak256(b"LIQUIDATOR_ROLE")
 
 PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 
 def sign_premium_quote(
-    pricer_key, oracle_address, borrower, condition_id,
-    premium_bps, amount, deadline, nonce, chain_id=1,
+    pricer_key,
+    oracle_address,
+    borrower,
+    condition_id,
+    premium_bps,
+    amount,
+    deadline,
+    nonce,
+    chain_id=1,
 ):
     domain_data = {
         "name": "LatticaPremiumOracle",
@@ -32,7 +37,9 @@ def sign_premium_quote(
     }
     message_data = {
         "borrower": borrower,
-        "conditionId": "0x" + condition_id.hex() if isinstance(condition_id, bytes) else condition_id,
+        "conditionId": "0x" + condition_id.hex()
+        if isinstance(condition_id, bytes)
+        else condition_id,
         "premiumBps": premium_bps,
         "amount": amount,
         "deadline": deadline,
@@ -85,8 +92,14 @@ def test_full_lending_cycle(
 
     nonce = premium_oracle.get_nonce(borrower)
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, borrower,
-        premium_oracle.condition_id(), premium_bps, borrow_amount, deadline, nonce,
+        PRICER_KEY,
+        premium_oracle.address,
+        borrower,
+        premium_oracle.condition_id(),
+        premium_bps,
+        borrow_amount,
+        deadline,
+        nonce,
     )
     with boa.env.prank(borrower):
         lending_pool.borrow(borrow_amount, borrower, 604800, premium_bps, deadline, sig)
@@ -152,8 +165,14 @@ def test_liquidation_cycle(
 
     nonce = premium_oracle.get_nonce(borrower)
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, borrower,
-        premium_oracle.condition_id(), premium_bps, borrow_amount, deadline, nonce,
+        PRICER_KEY,
+        premium_oracle.address,
+        borrower,
+        premium_oracle.condition_id(),
+        premium_bps,
+        borrow_amount,
+        deadline,
+        nonce,
     )
     with boa.env.prank(borrower):
         lending_pool.borrow(borrow_amount, borrower, 604800, premium_bps, deadline, sig)
@@ -223,8 +242,14 @@ def test_share_value_increases_with_interest(
 
     nonce = premium_oracle.get_nonce(borrower)
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, borrower,
-        premium_oracle.condition_id(), premium_bps, borrow_amount, deadline, nonce,
+        PRICER_KEY,
+        premium_oracle.address,
+        borrower,
+        premium_oracle.condition_id(),
+        premium_bps,
+        borrow_amount,
+        deadline,
+        nonce,
     )
     with boa.env.prank(borrower):
         lending_pool.borrow(borrow_amount, borrower, 604800, premium_bps, deadline, sig)

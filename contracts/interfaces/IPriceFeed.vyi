@@ -1,13 +1,16 @@
 # pragma version ~=0.4.3
 
+
 @external
 def push_price(new_price: uint256):
     ...
+
 
 @external
 @view
 def get_price() -> (uint256, bool):
     ...
+
 
 @external
 @view

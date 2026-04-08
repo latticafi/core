@@ -1,26 +1,32 @@
 # pragma version ~=0.4.3
 
+
 @external
 def transfer(to: address, amount: uint256) -> bool:
     ...
+
 
 @external
 def transferFrom(sender: address, receiver: address, amount: uint256) -> bool:
     ...
 
+
 @external
 def approve(spender: address, amount: uint256) -> bool:
     ...
+
 
 @external
 @view
 def balanceOf(account: address) -> uint256:
     ...
 
+
 @external
 @view
 def allowance(owner: address, spender: address) -> uint256:
     ...
+
 
 @external
 @view

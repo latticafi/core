@@ -1,5 +1,4 @@
 import boa
-import pytest
 
 
 def test_initial_state(price_feed_factory, price_feed_blueprint, deployer):
@@ -11,7 +10,12 @@ def test_initial_state(price_feed_factory, price_feed_blueprint, deployer):
 def test_deploy_feed(price_feed_factory, deployer, pricer, condition_id):
     with boa.env.prank(deployer):
         feed_addr = price_feed_factory.deploy_feed(
-            condition_id, pricer, 200, 3600, 3000, 600,
+            condition_id,
+            pricer,
+            200,
+            3600,
+            3000,
+            600,
         )
     assert feed_addr != "0x" + "00" * 20
     assert price_feed_factory.feed_count() == 1
@@ -19,15 +23,24 @@ def test_deploy_feed(price_feed_factory, deployer, pricer, condition_id):
     assert price_feed_factory.feed_list(0) == feed_addr
 
 
-def test_deploy_feed_non_owner_reverts(price_feed_factory, lender, pricer, condition_id):
+def test_deploy_feed_non_owner_reverts(
+    price_feed_factory, lender, pricer, condition_id
+):
     with boa.reverts():
         with boa.env.prank(lender):
             price_feed_factory.deploy_feed(
-                condition_id, pricer, 200, 3600, 3000, 600,
+                condition_id,
+                pricer,
+                200,
+                3600,
+                3000,
+                600,
             )
 
 
-def test_deploy_feed_duplicate_reverts(price_feed_factory, deployer, pricer, condition_id):
+def test_deploy_feed_duplicate_reverts(
+    price_feed_factory, deployer, pricer, condition_id
+):
     with boa.env.prank(deployer):
         price_feed_factory.deploy_feed(condition_id, pricer, 200, 3600, 3000, 600)
 
@@ -37,7 +50,9 @@ def test_deploy_feed_duplicate_reverts(price_feed_factory, deployer, pricer, con
 
 
 def test_set_implementation(price_feed_factory, deployer, price_feed_blueprint):
-    new_bp = boa.load_partial("contracts/oracle/pricefeed/PriceFeed.vy").deploy_as_blueprint()
+    new_bp = boa.load_partial(
+        "contracts/oracle/pricefeed/PriceFeed.vy"
+    ).deploy_as_blueprint()
     with boa.env.prank(deployer):
         price_feed_factory.set_implementation(new_bp.address)
     assert price_feed_factory.implementation() == new_bp.address

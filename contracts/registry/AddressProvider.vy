@@ -14,17 +14,21 @@ exports: (
     ownable_2step.pending_owner,
 )
 
+
 event AddressSet:
     id: uint256
     addr: address
 
+
 addresses: HashMap[uint256, address]
 num_entries: uint256
+
 
 @deploy
 def __init__():
     ownable.__init__()
     ownable_2step.__init__()
+
 
 @view
 @external
@@ -33,6 +37,7 @@ def get_address(id: uint256) -> address:
     assert addr != empty(address), "address not set"
     return addr
 
+
 @external
 def set_address(id: uint256, addr: address):
     ownable._check_owner()
@@ -40,6 +45,7 @@ def set_address(id: uint256, addr: address):
     if id >= self.num_entries:
         self.num_entries = id + 1
     log AddressSet(id=id, addr=addr)
+
 
 @view
 @external

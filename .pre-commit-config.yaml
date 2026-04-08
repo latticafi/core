@@ -1,0 +1,61 @@
+default_stages: [pre-commit, pre-push]
+
+repos:
+  # pre-commit utility hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+
+  # linters
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.5
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        language: system
+        entry: uv run ruff check
+        pass_filenames: false
+        types: [python]
+
+  # formatters
+  - repo: https://github.com/PyCQA/isort
+    rev: 8.0.1
+    hooks:
+      - id: isort
+        language: system
+        entry: uv run isort
+        types: [python]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.5
+    hooks:
+      - id: ruff-format
+        name: ruff-format
+        language: system
+        entry: uv run ruff format
+        types: [python]
+
+  - repo: https://github.com/benber86/mamushi
+    rev: v0.1.0
+    hooks:
+      - id: mamushi
+        language: system
+        entry: uv run mamushi
+        types_or: [file]
+        files: '\.vy$'
+
+  # tests
+  - repo: local
+    hooks:
+      - id: pytest
+        name: pytest
+        entry: bash -c 'uv run pytest'
+        language: system
+        pass_filenames: false
+        stages: [pre-push]

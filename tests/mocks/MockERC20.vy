@@ -4,19 +4,23 @@ balanceOf: public(HashMap[address, uint256])
 allowance: public(HashMap[address, HashMap[address, uint256]])
 totalSupply: public(uint256)
 
+
 @deploy
 def __init__():
     pass
+
 
 @external
 def mint(to: address, amount: uint256):
     self.balanceOf[to] += amount
     self.totalSupply += amount
 
+
 @external
 def approve(spender: address, amount: uint256) -> bool:
     self.allowance[msg.sender][spender] = amount
     return True
+
 
 @external
 def transfer(to: address, amount: uint256) -> bool:
@@ -25,9 +29,12 @@ def transfer(to: address, amount: uint256) -> bool:
     self.balanceOf[to] += amount
     return True
 
+
 @external
 def transferFrom(sender: address, receiver: address, amount: uint256) -> bool:
-    assert self.allowance[sender][msg.sender] >= amount, "insufficient allowance"
+    assert (
+        self.allowance[sender][msg.sender] >= amount
+    ), "insufficient allowance"
     assert self.balanceOf[sender] >= amount, "insufficient balance"
     self.allowance[sender][msg.sender] -= amount
     self.balanceOf[sender] -= amount

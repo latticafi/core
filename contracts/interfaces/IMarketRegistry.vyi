@@ -1,5 +1,6 @@
 # pragma version ~=0.4.3
 
+
 struct MarketParams:
     collateral_factor: uint256
     max_exposure_cap: uint256
@@ -9,40 +10,55 @@ struct MarketParams:
     is_active: bool
     is_paused: bool
 
+
 @external
-def onboard_market(condition_id: bytes32, resolution_time: uint256, collateral_factor: uint256, max_exposure_cap: uint256, min_liquidity_depth: uint256):
+def onboard_market(
+    condition_id: bytes32,
+    resolution_time: uint256,
+    collateral_factor: uint256,
+    max_exposure_cap: uint256,
+    min_liquidity_depth: uint256,
+):
     ...
+
 
 @external
 def pause_market(condition_id: bytes32):
     ...
 
+
 @external
 def unpause_market(condition_id: bytes32):
     ...
 
+
 @external
 def deboard_market(condition_id: bytes32):
     ...
+
 
 @external
 @view
 def is_registered(condition_id: bytes32) -> bool:
     ...
 
+
 @external
 @view
 def get_market_params(condition_id: bytes32) -> MarketParams:
     ...
+
 
 @external
 @view
 def get_cutoff(condition_id: bytes32) -> uint256:
     ...
 
+
 @external
 def update_collateral_factor(condition_id: bytes32, new_factor: uint256):
     ...
+
 
 @external
 def update_max_exposure_cap(condition_id: bytes32, new_cap: uint256):

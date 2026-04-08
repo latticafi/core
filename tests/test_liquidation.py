@@ -1,18 +1,23 @@
 import boa
-import pytest
 from eth_account import Account as EthAccount
-from eth_utils import keccak
-from eth_utils import keccak as keccak256
+from eth_utils.crypto import keccak as keccak256
 
-POOL_ROLE: bytes = keccak(b"POOL_ROLE")
-LIQUIDATOR_ROLE: bytes = keccak(b"LIQUIDATOR_ROLE")
+POOL_ROLE: bytes = keccak256(b"POOL_ROLE")
+LIQUIDATOR_ROLE: bytes = keccak256(b"LIQUIDATOR_ROLE")
 
 PRICER_KEY = "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
 
 
 def sign_premium_quote(
-    pricer_key, oracle_address, borrower, condition_id,
-    premium_bps, amount, deadline, nonce, chain_id=1,
+    pricer_key,
+    oracle_address,
+    borrower,
+    condition_id,
+    premium_bps,
+    amount,
+    deadline,
+    nonce,
+    chain_id=1,
 ):
     domain_data = {
         "name": "LatticaPremiumOracle",
@@ -32,7 +37,9 @@ def sign_premium_quote(
     }
     message_data = {
         "borrower": borrower,
-        "conditionId": "0x" + condition_id.hex() if isinstance(condition_id, bytes) else condition_id,
+        "conditionId": "0x" + condition_id.hex()
+        if isinstance(condition_id, bytes)
+        else condition_id,
         "premiumBps": premium_bps,
         "amount": amount,
         "deadline": deadline,
@@ -48,9 +55,18 @@ def sign_premium_quote(
 
 
 def _do_borrow_setup_and_borrow(
-    lending_pool, collateral_manager, mock_ctf, price_feed,
-    premium_oracle, deployer, pricer, lender, borrower, token_id,
-    funded_lender, funded_borrower,
+    lending_pool,
+    collateral_manager,
+    mock_ctf,
+    price_feed,
+    premium_oracle,
+    deployer,
+    pricer,
+    lender,
+    borrower,
+    token_id,
+    funded_lender,
+    funded_borrower,
     deposit_amount=100_000 * 10**6,
     collateral_amount=500 * 10**18,
     borrow_amount=10_000 * 10**6,
@@ -68,8 +84,14 @@ def _do_borrow_setup_and_borrow(
     deadline = 2_000_000_000
     nonce = premium_oracle.get_nonce(borrower)
     sig = sign_premium_quote(
-        PRICER_KEY, premium_oracle.address, borrower,
-        premium_oracle.condition_id(), premium_bps, borrow_amount, deadline, nonce,
+        PRICER_KEY,
+        premium_oracle.address,
+        borrower,
+        premium_oracle.condition_id(),
+        premium_bps,
+        borrow_amount,
+        deadline,
+        nonce,
     )
     with boa.env.prank(borrower):
         lending_pool.borrow(borrow_amount, borrower, 604800, premium_bps, deadline, sig)
@@ -115,9 +137,18 @@ def test_is_liquidatable_expired_epoch(
     funded_borrower,
 ):
     _do_borrow_setup_and_borrow(
-        lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, deployer, pricer, lender, borrower, token_id,
-        funded_lender, funded_borrower,
+        lending_pool,
+        collateral_manager,
+        mock_ctf,
+        price_feed,
+        premium_oracle,
+        deployer,
+        pricer,
+        lender,
+        borrower,
+        token_id,
+        funded_lender,
+        funded_borrower,
     )
 
     boa.env.time_travel(seconds=604800 + 1)
@@ -145,9 +176,18 @@ def test_is_liquidatable_health_below_threshold(
     funded_borrower,
 ):
     _do_borrow_setup_and_borrow(
-        lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, deployer, pricer, lender, borrower, token_id,
-        funded_lender, funded_borrower,
+        lending_pool,
+        collateral_manager,
+        mock_ctf,
+        price_feed,
+        premium_oracle,
+        deployer,
+        pricer,
+        lender,
+        borrower,
+        token_id,
+        funded_lender,
+        funded_borrower,
     )
 
     debt_value = 5 * 10**18
@@ -182,9 +222,18 @@ def test_liquidate(
     funded_borrower,
 ):
     _do_borrow_setup_and_borrow(
-        lending_pool, collateral_manager, mock_ctf, price_feed,
-        premium_oracle, deployer, pricer, lender, borrower, token_id,
-        funded_lender, funded_borrower,
+        lending_pool,
+        collateral_manager,
+        mock_ctf,
+        price_feed,
+        premium_oracle,
+        deployer,
+        pricer,
+        lender,
+        borrower,
+        token_id,
+        funded_lender,
+        funded_borrower,
     )
 
     boa.env.time_travel(seconds=604800 + 1)
