@@ -1,15 +1,19 @@
 # pragma version ~=0.4.0
 
 @external
-def update_price(condition_id: bytes32, price: uint256): nonpayable
+def update_price(condition_id: bytes32, price: uint256):
+    ...
 
 @external
 @view
-def get_price(condition_id: bytes32) -> (uint256, uint256): view
+def get_price(condition_id: bytes32) -> (uint256, uint256):
+    ...
 
 @external
 @view
-def is_circuit_broken(condition_id: bytes32) -> bool: view
+def is_circuit_broken(condition_id: bytes32) -> bool:
+    ...
 
 @external
-def reset_circuit_breaker(condition_id: bytes32): nonpayable
+def reset_circuit_breaker(condition_id: bytes32):
+    ...

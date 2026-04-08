@@ -1,22 +1,28 @@
 # pragma version ~=0.4.0
 
 @external
-def seize(loan_id: uint256, token_id: uint256, collateral_amount: uint256, condition_id: bytes32, principal: uint256, epoch_end: uint256): nonpayable
+def seize(loan_id: uint256, token_id: uint256, collateral_amount: uint256, condition_id: bytes32, principal: uint256, epoch_end: uint256):
+    ...
 
 @external
-def settle(loan_id: uint256, recovered: uint256): nonpayable
+def settle(loan_id: uint256, recovered: uint256):
+    ...
 
 @external
-def emergency_claim(loan_id: uint256): nonpayable
-
-@external
-@view
-def pending_count() -> uint256: view
-
-@external
-@view
-def total_seized_principal() -> uint256: view
+def emergency_claim(loan_id: uint256):
+    ...
 
 @external
 @view
-def total_recovered() -> uint256: view
+def pending_count() -> uint256:
+    ...
+
+@external
+@view
+def total_seized_principal() -> uint256:
+    ...
+
+@external
+@view
+def total_recovered() -> uint256:
+    ...

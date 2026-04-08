@@ -25,89 +25,113 @@ struct Loan:
     liquidated: bool
 
 @external
-def originate(borrower: address, condition_id: bytes32, collateral_amount: uint256, borrow_amount: uint256, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> uint256: nonpayable
+def originate(borrower: address, condition_id: bytes32, collateral_amount: uint256, borrow_amount: uint256, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> uint256:
+    ...
 
 @external
-def settle_repay(loan_id: uint256, borrower: address) -> Loan: nonpayable
+def settle_repay(loan_id: uint256, borrower: address) -> Loan:
+    ...
 
 @external
-def settle_roll(old_loan_id: uint256, borrower: address, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> (uint256, uint256, Loan): nonpayable
+def settle_roll(old_loan_id: uint256, borrower: address, epoch_length: uint256, premium_bps: uint256, deadline: uint256, nonce: uint256, signature: Bytes[65]) -> (uint256, uint256, Loan):
+    ...
 
 @external
-def mark_liquidated(loan_id: uint256) -> Loan: nonpayable
+def mark_liquidated(loan_id: uint256) -> Loan:
+    ...
 
 @external
-def deposit_shares(lender: address, amount: uint256) -> uint256: nonpayable
+def deposit_shares(lender: address, amount: uint256) -> uint256:
+    ...
 
 @external
-def withdraw_shares(lender: address, shares: uint256) -> uint256: nonpayable
+def withdraw_shares(lender: address, shares: uint256) -> uint256:
+    ...
 
 @external
-def set_market(condition_id: bytes32, params: MarketParams): nonpayable
+def set_market(condition_id: bytes32, params: MarketParams):
+    ...
 
 @external
-def pause_market(condition_id: bytes32): nonpayable
-
-@external
-@view
-def health_factor(loan_id: uint256) -> uint256: view
-
-@external
-@view
-def get_loan(loan_id: uint256) -> Loan: view
-
-@external
-@view
-def share_price() -> uint256: view
+def pause_market(condition_id: bytes32):
+    ...
 
 @external
 @view
-def current_rate() -> uint256: view
+def health_factor(loan_id: uint256) -> uint256:
+    ...
 
 @external
 @view
-def available_liquidity() -> uint256: view
+def get_loan(loan_id: uint256) -> Loan:
+    ...
 
 @external
 @view
-def utilization() -> uint256: view
+def share_price() -> uint256:
+    ...
 
 @external
 @view
-def total_assets() -> uint256: view
+def current_rate() -> uint256:
+    ...
 
 @external
 @view
-def total_borrowed() -> uint256: view
+def available_liquidity() -> uint256:
+    ...
 
 @external
 @view
-def total_shares() -> uint256: view
+def utilization() -> uint256:
+    ...
 
 @external
 @view
-def preview_liquidation_price(collateral_amount: uint256, borrow_amount: uint256) -> uint256: view
+def total_assets() -> uint256:
+    ...
 
 @external
 @view
-def get_liquidation_price(loan_id: uint256) -> uint256: view
+def total_borrowed() -> uint256:
+    ...
 
 @external
 @view
-def current_ltv(loan_id: uint256) -> uint256: view
+def total_shares() -> uint256:
+    ...
 
 @external
 @view
-def is_market_eligible(condition_id: bytes32) -> bool: view
+def preview_liquidation_price(collateral_amount: uint256, borrow_amount: uint256) -> uint256:
+    ...
 
 @external
 @view
-def maintenance_margin_bps() -> uint256: view
+def get_liquidation_price(loan_id: uint256) -> uint256:
+    ...
 
 @external
 @view
-def next_loan_id() -> uint256: view
+def current_ltv(loan_id: uint256) -> uint256:
+    ...
 
 @external
 @view
-def share_balance(lender: address) -> uint256: view
+def is_market_eligible(condition_id: bytes32) -> bool:
+    ...
+
+@external
+@view
+def maintenance_margin_bps() -> uint256:
+    ...
+
+@external
+@view
+def next_loan_id() -> uint256:
+    ...
+
+@external
+@view
+def share_balance(lender: address) -> uint256:
+    ...
