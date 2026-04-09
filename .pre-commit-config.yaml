@@ -32,7 +32,7 @@ repos:
       - id: mamushi
         language: system
         entry: uv run mamushi
-        files: '\.vy$'
+        files: '\.vyi?$'
 
   - repo: local
     hooks:
