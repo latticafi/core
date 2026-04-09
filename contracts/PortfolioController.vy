@@ -51,6 +51,7 @@ circuit_breaker_threshold_bps: public(uint256)  # e.g. 20000 = 200%
 
 @deploy
 def __init__(pool_addr: address, admin: address, _max_total: uint256):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     self.pool = pool_addr
@@ -159,43 +160,43 @@ def is_circuit_broken() -> bool:
 
 @external
 def set_condition_cap(condition_id: bytes32, cap: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.condition_cap[condition_id] = cap
 
 
 @external
 def set_cluster_assignment(condition_id: bytes32, cluster_id: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.condition_cluster[condition_id] = cluster_id
 
 
 @external
 def set_cluster_budget(cluster_id: uint256, budget: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.cluster_budget[cluster_id] = budget
 
 
 @external
 def set_window_cap(bucket: uint256, cap: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.window_cap[bucket] = cap
 
 
 @external
 def set_default_window_cap(cap: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.default_window_cap = cap
 
 
 @external
 def set_max_total_exposure(_max: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.max_total_exposure = _max
 
 
 @external
 def set_circuit_breaker(broken: bool):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.circuit_broken = broken
 
 
@@ -205,7 +206,7 @@ def update_calibration(realized_bps: uint256, predicted_bps: uint256):
     @notice Called by admin at epoch settlement with calibration data.
             Auto-trips circuit breaker if realized >> predicted.
     """
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     if predicted_bps > 0:
         self.realized_loss_ratio_bps = (realized_bps * 10000) // predicted_bps
         if self.realized_loss_ratio_bps > self.circuit_breaker_threshold_bps:
