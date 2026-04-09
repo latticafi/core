@@ -46,6 +46,7 @@ event PricerRotated:
 
 @deploy
 def __init__(pricer_addr: address, pool_addr: address, admin: address):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     eip712.__init__("LatticaPremiumOracle", "1")
@@ -108,13 +109,13 @@ def get_nonce(borrower: address) -> uint256:
 
 @external
 def set_paused(_paused: bool):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.paused = _paused
 
 
 @external
 def set_pricer(new_pricer: address):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert new_pricer != empty(address), "zero address"
     old: address = self.pricer
     self.pricer = new_pricer

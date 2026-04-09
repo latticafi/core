@@ -101,6 +101,7 @@ def __init__(
     price_feed_addr: address,
     admin: address,
 ):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     self.usdc = IERC20(usdc_addr)
@@ -119,7 +120,7 @@ def set_peripherals(oracle_addr: address, controller_addr: address):
     """
     @notice One-time wiring called by Factory after Oracle and Controller deploy.
     """
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert not self.peripherals_set, "already set"
     assert oracle_addr != empty(address), "zero oracle"
     assert controller_addr != empty(address), "zero controller"
@@ -419,7 +420,7 @@ def mark_liquidated(loan_id: uint256) -> Loan:
 
 @external
 def set_market(condition_id: bytes32, params: MarketParams):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert params.token_id != 0, "zero token id"
     assert (
         params.max_ltv_bps > params.min_ltv_bps
@@ -433,7 +434,7 @@ def set_market(condition_id: bytes32, params: MarketParams):
 
 @external
 def pause_market(condition_id: bytes32):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.markets[condition_id].active = False
     log MarketPaused(condition_id)
 
@@ -593,7 +594,7 @@ def _is_eligible(condition_id: bytes32) -> bool:
 
 @external
 def set_rate_params(base: uint256, s1: uint256, s2: uint256, kink: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.base_rate_bps = base
     self.slope1_bps = s1
     self.slope2_bps = s2
@@ -602,7 +603,7 @@ def set_rate_params(base: uint256, s1: uint256, s2: uint256, kink: uint256):
 
 @external
 def set_maintenance_margin(margin_bps: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert margin_bps >= 500, "maintenance margin too low"
     assert margin_bps <= 10000, "maintenance margin too high"
     self.maintenance_margin_bps = margin_bps

@@ -42,6 +42,7 @@ def __init__(
     _base_retention: uint256,
     _max_retention: uint256,
 ):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     self.usdc = IERC20(usdc_addr)
@@ -113,13 +114,13 @@ def is_healthy() -> bool:
 
 @external
 def set_reserve_target(target: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.reserve_target = target
 
 
 @external
 def set_retention_bps(base: uint256, _max: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert _max >= base, "max must be >= base"
     self.base_retention_bps = base
     self.max_retention_bps = _max
@@ -127,5 +128,5 @@ def set_retention_bps(base: uint256, _max: uint256):
 
 @external
 def set_pool(new_pool: address):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.pool = new_pool

@@ -68,6 +68,7 @@ def __init__(
     ctf_token_addr: address,
     admin: address,
 ):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     self.pool = pool_addr
@@ -124,13 +125,13 @@ def settle(loan_id: uint256, recovered: uint256):
 
 @external
 def emergency_claim(loan_id: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     p: PendingLiquidation = self.pending[loan_id]
     assert p.seized_at > 0, "no pending liquidation"
     assert not p.settled, "already settled"
 
     extcall IERC1155(self.ctf_token).safeTransferFrom(
-        self, ow.owner, p.token_id, p.collateral_amount, b""
+        self, ownable.owner, p.token_id, p.collateral_amount, b""
     )
 
     self.pending[loan_id].settled = True
@@ -142,7 +143,7 @@ def emergency_claim(loan_id: uint256):
 
 @external
 def set_bot(new_bot: address):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert new_bot != empty(address), "zero address"
     self.bot = new_bot
 

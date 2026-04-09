@@ -31,22 +31,6 @@ from interfaces import IPriceFeed as IPriceFeed
 from interfaces import IReserve as IReserve
 
 
-struct Loan:
-    borrower: address
-    condition_id: bytes32
-    token_id: uint256
-    collateral_amount: uint256
-    principal: uint256
-    premium_paid: uint256
-    interest_due: uint256
-    interest_rate_bps: uint256
-    liquidation_price: uint256
-    epoch_start: uint256
-    epoch_end: uint256
-    repaid: bool
-    liquidated: bool
-
-
 # Constants
 
 PRECISION: constant(uint256) = 10_000
@@ -109,6 +93,7 @@ event LoanLiquidated:
 
 @deploy
 def __init__(usdc_addr: address, ctf_token_addr: address, admin: address):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     ps.__init__()
@@ -125,7 +110,7 @@ def initialize(
     guardian_addr: address,
 ):
     assert not self.initialized, "already initialized"
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     assert core_addr != empty(address), "zero core"
     assert liquidator_addr != empty(address), "zero liquidator"
     assert reserve_addr != empty(address), "zero reserve"
@@ -142,7 +127,7 @@ def initialize(
 @internal
 def _check():
     assert self.initialized, "not initialized"
-    ps._ensure_not_paused()
+    ps._require_not_paused()
 
 
 # Lender
@@ -196,7 +181,7 @@ def borrow(
         signature,
     )
 
-    loan: Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
+    loan: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
 
     extcall IERC1155(self.ctf_token).safeTransferFrom(
         msg.sender, self, loan.token_id, collateral_amount, b""
@@ -224,7 +209,9 @@ def borrow(
 @external
 def repay(loan_id: uint256):
     self._check()
-    loan: Loan = extcall IPoolCore(self.core).settle_repay(loan_id, msg.sender)
+    loan: IPoolCore.Loan = extcall IPoolCore(self.core).settle_repay(
+        loan_id, msg.sender
+    )
 
     extcall self.usdc.transferFrom(msg.sender, self, loan.principal)
     extcall IERC1155(self.ctf_token).safeTransferFrom(
@@ -247,7 +234,7 @@ def roll_loan(
 
     new_loan_id: uint256 = 0
     total_cost: uint256 = 0
-    old_loan: Loan = empty(Loan)
+    old_loan: IPoolCore.Loan = empty(IPoolCore.Loan)
     new_loan_id, total_cost, old_loan = extcall IPoolCore(
         self.core
     ).settle_roll(
@@ -262,7 +249,9 @@ def roll_loan(
 
     extcall self.usdc.transferFrom(msg.sender, self, total_cost)
 
-    new_loan: Loan = staticcall IPoolCore(self.core).get_loan(new_loan_id)
+    new_loan: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(
+        new_loan_id
+    )
     retention: uint256 = self._route_to_reserve(new_loan.premium_paid)
 
     log LoanRolled(old_loan_id, new_loan_id)
@@ -284,7 +273,7 @@ def roll_loan(
 def trigger_liquidation(loan_id: uint256):
     assert self.initialized, "not initialized"
 
-    loan_pre: Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
+    loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
     assert loan_pre.borrower != empty(address), "loan does not exist"
     assert block.timestamp <= loan_pre.epoch_end, "use claim_expired"
 
@@ -298,7 +287,7 @@ def trigger_liquidation(loan_id: uint256):
     hf: uint256 = staticcall IPoolCore(self.core).health_factor(loan_id)
     assert hf < PRECISION, "position is healthy"
 
-    loan: Loan = extcall IPoolCore(self.core).mark_liquidated(loan_id)
+    loan: IPoolCore.Loan = extcall IPoolCore(self.core).mark_liquidated(loan_id)
     extcall IReserve(self.reserve).cover_loss(loan.principal)
 
     extcall IERC1155(self.ctf_token).safeTransferFrom(
@@ -320,11 +309,11 @@ def trigger_liquidation(loan_id: uint256):
 def claim_expired(loan_id: uint256):
     assert self.initialized, "not initialized"
 
-    loan_pre: Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
+    loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
     assert loan_pre.borrower != empty(address), "loan does not exist"
     assert block.timestamp > loan_pre.epoch_end, "epoch not expired"
 
-    loan: Loan = extcall IPoolCore(self.core).mark_liquidated(loan_id)
+    loan: IPoolCore.Loan = extcall IPoolCore(self.core).mark_liquidated(loan_id)
     extcall IReserve(self.reserve).cover_loss(loan.principal)
 
     extcall IERC1155(self.ctf_token).safeTransferFrom(
@@ -360,19 +349,21 @@ def _route_to_reserve(premium: uint256) -> uint256:
 
 @external
 def pause():
-    assert msg.sender == self.guardian or msg.sender == ow.owner, "not guardian"
+    assert (
+        msg.sender == self.guardian or msg.sender == ownable.owner
+    ), "not guardian"
     ps._pause()
 
 
 @external
 def unpause():
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     ps._unpause()
 
 
 @external
 def set_guardian(_guardian: address):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.guardian = _guardian
 
 

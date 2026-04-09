@@ -53,6 +53,7 @@ def __init__(
     _cb_threshold: uint256,
     _cb_cooldown: uint256,
 ):
+    ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
     self.updater = _updater
@@ -115,18 +116,18 @@ def is_circuit_broken(condition_id: bytes32) -> bool:
 
 @external
 def reset_circuit_breaker(condition_id: bytes32):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.prices[condition_id].circuit_breaker_until = 0
 
 
 @external
 def set_updater(new_updater: address):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.updater = new_updater
 
 
 @external
 def set_circuit_breaker_params(threshold: uint256, cooldown: uint256):
-    assert msg.sender == ow.owner, "not owner"
+    ownable._check_owner()
     self.circuit_breaker_threshold = threshold
     self.circuit_breaker_cooldown = cooldown
