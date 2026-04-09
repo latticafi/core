@@ -139,7 +139,7 @@ def deposit(amount: uint256) -> uint256:
     shares: uint256 = extcall IPoolCore(self.core).deposit_shares(
         msg.sender, amount
     )
-    log Deposited(msg.sender, amount, shares)
+    log Deposited(lender=msg.sender, amount=amount, shares=shares)
     return shares
 
 
@@ -150,7 +150,7 @@ def withdraw(shares: uint256) -> uint256:
         msg.sender, shares
     )
     extcall self.usdc.transfer(msg.sender, amount)
-    log Withdrawn(msg.sender, shares, amount)
+    log Withdrawn(lender=msg.sender, shares=shares, amount=amount)
     return amount
 
 
@@ -195,14 +195,16 @@ def borrow(
     retention: uint256 = self._route_to_reserve(loan.premium_paid)
 
     log LoanOriginated(
-        loan_id,
-        msg.sender,
-        condition_id,
-        borrow_amount,
-        loan.premium_paid,
-        loan.epoch_end,
+        loan_id=loan_id,
+        borrower=msg.sender,
+        condition_id=condition_id,
+        principal=borrow_amount,
+        premium=loan.premium_paid,
+        epoch_end=loan.epoch_end,
     )
-    log PremiumCollected(loan_id, loan.premium_paid, retention)
+    log PremiumCollected(
+        loan_id=loan_id, premium=loan.premium_paid, retention=retention
+    )
     return loan_id
 
 
@@ -218,7 +220,7 @@ def repay(loan_id: uint256):
         self, msg.sender, loan.token_id, loan.collateral_amount, b""
     )
 
-    log LoanRepaid(loan_id)
+    log LoanRepaid(loan_id=loan_id)
 
 
 @external
@@ -254,16 +256,18 @@ def roll_loan(
     )
     retention: uint256 = self._route_to_reserve(new_loan.premium_paid)
 
-    log LoanRolled(old_loan_id, new_loan_id)
+    log LoanRolled(old_loan_id=old_loan_id, new_loan_id=new_loan_id)
     log LoanOriginated(
-        new_loan_id,
-        msg.sender,
-        old_loan.condition_id,
-        old_loan.principal,
-        new_loan.premium_paid,
-        new_loan.epoch_end,
+        loan_id=new_loan_id,
+        borrower=msg.sender,
+        condition_id=old_loan.condition_id,
+        principal=old_loan.principal,
+        premium=new_loan.premium_paid,
+        epoch_end=new_loan.epoch_end,
     )
-    log PremiumCollected(new_loan_id, new_loan.premium_paid, retention)
+    log PremiumCollected(
+        loan_id=new_loan_id, premium=new_loan.premium_paid, retention=retention
+    )
     return new_loan_id
 
 
@@ -302,7 +306,7 @@ def trigger_liquidation(loan_id: uint256):
         loan.epoch_end,
     )
 
-    log LoanLiquidated(loan_id)
+    log LoanLiquidated(loan_id=loan_id)
 
 
 @external
@@ -328,7 +332,7 @@ def claim_expired(loan_id: uint256):
         loan.epoch_end,
     )
 
-    log LoanLiquidated(loan_id)
+    log LoanLiquidated(loan_id=loan_id)
 
 
 # Reserve routing

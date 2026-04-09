@@ -101,7 +101,12 @@ def seize(
     self.pending_count += 1
     self.total_seized_principal += principal
 
-    log CollateralSeized(loan_id, token_id, collateral_amount, principal)
+    log CollateralSeized(
+        loan_id=loan_id,
+        token_id=token_id,
+        collateral_amount=collateral_amount,
+        principal=principal,
+    )
 
 
 # Called by bot after selling collateral on CLOB and sending
@@ -118,7 +123,7 @@ def settle(loan_id: uint256, recovered: uint256):
     self.pending_count -= 1
     self.total_recovered += recovered
 
-    log LiquidationSettled(loan_id, recovered)
+    log LiquidationSettled(loan_id=loan_id, recovered=recovered)
 
 
 # Emergency: admin claims stuck collateral
@@ -136,7 +141,7 @@ def emergency_claim(loan_id: uint256):
 
     self.pending[loan_id].settled = True
     self.pending_count -= 1
-    log EmergencyClaimed(loan_id)
+    log EmergencyClaimed(loan_id=loan_id)
 
 
 # Admin

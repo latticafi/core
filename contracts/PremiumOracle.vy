@@ -93,7 +93,7 @@ def verify_quote(
     assert recovered == self.pricer, "wrong signer"
 
     self.nonces[borrower] = nonce + 1
-    log QuoteConsumed(borrower, nonce, premium_bps)
+    log QuoteConsumed(borrower=borrower, nonce=nonce, premium_bps=premium_bps)
     return True
 
 
@@ -119,4 +119,4 @@ def set_pricer(new_pricer: address):
     assert new_pricer != empty(address), "zero address"
     old: address = self.pricer
     self.pricer = new_pricer
-    log PricerRotated(old, new_pricer)
+    log PricerRotated(old_pricer=old, new_pricer=new_pricer)

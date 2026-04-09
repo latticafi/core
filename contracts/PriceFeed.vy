@@ -89,14 +89,18 @@ def update_price(condition_id: bytes32, price: uint256):
             self.prices[condition_id].circuit_breaker_until = (
                 block.timestamp + self.circuit_breaker_cooldown
             )
-            log CircuitBreakerTripped(condition_id, current, price)
+            log CircuitBreakerTripped(
+                condition_id=condition_id, old_price=current, new_price=price
+            )
             return  # price NOT stored — old price remains current
     self.prices[condition_id].previous_price = current
     self.prices[condition_id].previous_timestamp = pd.current_timestamp
     self.prices[condition_id].current_price = price
     self.prices[condition_id].current_timestamp = block.timestamp
 
-    log PriceUpdated(condition_id, price, block.timestamp)
+    log PriceUpdated(
+        condition_id=condition_id, price=price, timestamp=block.timestamp
+    )
 
 
 @external

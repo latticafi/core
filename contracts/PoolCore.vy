@@ -429,14 +429,14 @@ def set_market(condition_id: bytes32, params: MarketParams):
     is_new: bool = self.markets[condition_id].token_id == 0
     self.markets[condition_id] = params
     if is_new:
-        log MarketOnboarded(condition_id, params.token_id)
+        log MarketOnboarded(condition_id=condition_id, token_id=params.token_id)
 
 
 @external
 def pause_market(condition_id: bytes32):
     ownable._check_owner()
     self.markets[condition_id].active = False
-    log MarketPaused(condition_id)
+    log MarketPaused(condition_id=condition_id)
 
 
 # Views

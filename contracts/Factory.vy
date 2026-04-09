@@ -193,7 +193,13 @@ def deploy_pool(
     self.deployed = True
 
     log PoolStackDeployed(
-        _pool, _core, _oracle, _price_feed, _controller, _reserve, _liquidator
+        pool=_pool,
+        core=_core,
+        oracle=_oracle,
+        price_feed=_price_feed,
+        controller=_controller,
+        reserve=_reserve,
+        liquidator=_liquidator,
     )
 
 
@@ -232,7 +238,7 @@ def set_views(_views: address):
 def commit_transfer_ownership(_future_admin: address):
     assert msg.sender == self.admin, "not admin"
     self.future_admin = _future_admin
-    log TransferOwnershipCommitted(_future_admin)
+    log TransferOwnershipCommitted(future_admin=_future_admin)
 
 
 @external
@@ -240,4 +246,4 @@ def accept_transfer_ownership():
     assert msg.sender == self.future_admin, "not future admin"
     self.admin = self.future_admin
     self.future_admin = empty(address)
-    log TransferOwnershipAccepted(self.admin)
+    log TransferOwnershipAccepted(admin=self.admin)

@@ -63,7 +63,7 @@ def deposit(amount: uint256):
             pattern and saves gas.
     """
     assert msg.sender == self.pool, "not pool"
-    log ReserveDeposited(amount)
+    log ReserveDeposited(amount=amount)
 
 
 @external
@@ -76,7 +76,7 @@ def cover_loss(amount: uint256) -> uint256:
     covered: uint256 = min(amount, bal)
     if covered > 0:
         extcall self.usdc.transfer(self.pool, covered)
-        log LossCovered(covered)
+        log LossCovered(amount=covered)
     return covered
 
 
