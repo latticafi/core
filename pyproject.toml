@@ -13,14 +13,7 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "isort>=8.0.1",
-    "mamushi",
-    "pytest",
-    "ruff",
-    "types-PyYAML",
-    "vyper-language-server",
-]
+dev = ["mamushi", "pytest", "ruff", "types-PyYAML", "vyper-language-server"]
 lint = ["mamushi", "ruff"]
 test = ["pytest"]
 
@@ -33,6 +26,15 @@ python_classes = ["Test*"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["conftest"]
 
 [tool.uv.sources]
 vyper-language-server = { git = "https://github.com/latticafi/vyper-language-server" }
