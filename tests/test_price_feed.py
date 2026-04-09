@@ -70,7 +70,7 @@ class TestCircuitBreaker:
         with boa.env.prank(updater):
             feed.update_price(CONDITION_ID, 5 * 10**17)
             # 25% move (above 20% threshold)
-            feed.update_price(CONDITION_ID, 625 * 10**15)
+            feed.update_price(CONDITION_ID, 75 * 10**16)
 
         assert feed.is_circuit_broken(CONDITION_ID)
         # Price should NOT be stored (old price remains)
@@ -80,14 +80,14 @@ class TestCircuitBreaker:
     def test_breaker_blocks_updates(self, feed, updater):
         with boa.env.prank(updater):
             feed.update_price(CONDITION_ID, 5 * 10**17)
-            feed.update_price(CONDITION_ID, 625 * 10**15)  # trips breaker
+            feed.update_price(CONDITION_ID, 75 * 10**16)  # trips breaker
             with boa.reverts("circuit breaker active"):
                 feed.update_price(CONDITION_ID, 52 * 10**16)
 
     def test_breaker_expires_after_cooldown(self, feed, updater):
         with boa.env.prank(updater):
             feed.update_price(CONDITION_ID, 5 * 10**17)
-            feed.update_price(CONDITION_ID, 625 * 10**15)  # trips breaker
+            feed.update_price(CONDITION_ID, 75 * 10**16)  # trips breaker
 
         boa.env.time_travel(seconds=3601)
 
@@ -98,7 +98,7 @@ class TestCircuitBreaker:
     def test_admin_resets_breaker(self, feed, updater, admin):
         with boa.env.prank(updater):
             feed.update_price(CONDITION_ID, 5 * 10**17)
-            feed.update_price(CONDITION_ID, 625 * 10**15)
+            feed.update_price(CONDITION_ID, 75 * 10**16)
         assert feed.is_circuit_broken(CONDITION_ID)
         with boa.env.prank(admin):
             feed.reset_circuit_breaker(CONDITION_ID)
