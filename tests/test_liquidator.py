@@ -85,7 +85,7 @@ class TestSettle:
             with boa.reverts("no pending liquidation"):
                 liquidator.settle(999, 100 * 10**6)
 
-    def test_non_bot_reverts(self, liquidator, pool):
+    def test_non_operator_reverts(self, liquidator, pool):
         with boa.env.prank(pool):
             liquidator.seize(1, TOKEN_ID, 1000 * 10**6, CONDITION_ID, 500 * 10**6, 2_000_000_000)
         rando = boa.env.generate_address("rando")
@@ -117,14 +117,14 @@ class TestEmergencyClaim:
                 liquidator.emergency_claim(1)
 
 
-class TestBotRotation:
-    def test_set_bot(self, liquidator, admin):
+class TestOperatorRotation:
+    def test_set_operator(self, liquidator, admin):
         new_operator = boa.env.generate_address("new_operator")
         with boa.env.prank(admin):
             liquidator.set_operator(new_operator)
         assert liquidator.operator() == new_operator
 
-    def test_set_bot_zero_reverts(self, liquidator, admin):
+    def test_set_operator_zero_reverts(self, liquidator, admin):
         with boa.env.prank(admin):
             with boa.reverts("zero address"):
                 liquidator.set_operator("0x" + "00" * 20)

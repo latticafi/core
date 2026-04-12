@@ -1,6 +1,5 @@
 """
 Integration tests against a Polygon fork.
-Tests deployment and real USDC.e interactions.
 """
 
 import json
@@ -12,8 +11,8 @@ import pytest
 from conftest import ORACLE_SIGNER_ADDRESS, PRICER_ADDRESS, submit_signed_price
 
 pytestmark = pytest.mark.skipif(
-    not os.environ.get("POLYGON_RPC"),
-    reason="POLYGON_RPC not set",
+    not os.environ.get("RPC_URL"),
+    reason="RPC_URL not set",
 )
 
 USDC_E = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
@@ -54,7 +53,7 @@ USDC_WHALE = "0x625E7708f30cA75bfd92586e17077590C60eb4cD"
 
 @pytest.fixture(scope="module", autouse=True)
 def fork():
-    boa.env.fork(os.environ["POLYGON_RPC"])
+    boa.env.fork(os.environ["RPC_URL"])
     yield
 
 
