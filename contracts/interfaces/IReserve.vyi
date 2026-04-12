@@ -1,6 +1,6 @@
 # pragma version ~=0.4.0
 
-
+# LendingPool calls
 @external
 def deposit(amount: uint256):
     ...
@@ -17,19 +17,14 @@ def current_retention_bps() -> uint256:
     ...
 
 
-@external
-@view
-def reserve_balance() -> uint256:
-    ...
-
-
-@external
-@view
-def reserve_target() -> uint256:
-    ...
-
-
+# Views reads
 @external
 @view
 def is_healthy() -> bool:
+    ...
+
+
+@external
+@view
+def reserve_balance() -> uint256:
     ...

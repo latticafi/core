@@ -27,6 +27,7 @@ struct Loan:
     liquidated: bool
 
 
+# LendingPool calls
 @external
 def originate(
     borrower: address,
@@ -75,6 +76,12 @@ def withdraw_shares(lender: address, shares: uint256) -> uint256:
     ...
 
 
+# Factory calls
+@external
+def set_peripherals(oracle_addr: address, controller_addr: address):
+    ...
+
+
 @external
 def set_market(condition_id: bytes32, params: MarketParams):
     ...
@@ -82,6 +89,13 @@ def set_market(condition_id: bytes32, params: MarketParams):
 
 @external
 def pause_market(condition_id: bytes32):
+    ...
+
+
+# LendingPool + Views read
+@external
+@view
+def get_loan(loan_id: uint256) -> Loan:
     ...
 
 
@@ -93,10 +107,11 @@ def health_factor(loan_id: uint256) -> uint256:
 
 @external
 @view
-def get_loan(loan_id: uint256) -> Loan:
+def get_liquidation_price(loan_id: uint256) -> uint256:
     ...
 
 
+# Views read
 @external
 @view
 def share_price() -> uint256:
@@ -144,12 +159,6 @@ def total_shares() -> uint256:
 def preview_liquidation_price(
     collateral_amount: uint256, borrow_amount: uint256
 ) -> uint256:
-    ...
-
-
-@external
-@view
-def get_liquidation_price(loan_id: uint256) -> uint256:
     ...
 
 

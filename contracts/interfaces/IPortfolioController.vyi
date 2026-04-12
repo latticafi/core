@@ -1,6 +1,6 @@
 # pragma version ~=0.4.0
 
-
+# PoolCore calls
 @external
 @view
 def check_capacity(
@@ -23,6 +23,13 @@ def record_settlement(
     ...
 
 
+# Views reads
+@external
+@view
+def condition_exposure(condition_id: bytes32) -> uint256:
+    ...
+
+
 @external
 @view
 def is_circuit_broken() -> bool:
@@ -38,10 +45,4 @@ def total_exposure() -> uint256:
 @external
 @view
 def max_total_exposure() -> uint256:
-    ...
-
-
-@external
-@view
-def condition_exposure(condition_id: bytes32) -> uint256:
     ...

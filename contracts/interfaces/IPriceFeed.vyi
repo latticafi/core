@@ -1,23 +1,26 @@
 # pragma version ~=0.4.0
 
-
+# Anyone submits signed price attestation
 @external
-def update_price(condition_id: bytes32, price: uint256):
+def submit_price(
+    condition_id: bytes32,
+    price: uint256,
+    timestamp: uint256,
+    deadline: uint256,
+    signature: Bytes[65],
+):
     ...
 
 
+# LendingPool + PoolCore + Views read
 @external
 @view
 def get_price(condition_id: bytes32) -> (uint256, uint256):
     ...
 
 
+# Views reads
 @external
 @view
 def is_circuit_broken(condition_id: bytes32) -> bool:
-    ...
-
-
-@external
-def reset_circuit_breaker(condition_id: bytes32):
     ...

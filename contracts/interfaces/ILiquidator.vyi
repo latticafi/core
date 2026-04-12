@@ -1,6 +1,6 @@
 # pragma version ~=0.4.0
 
-
+# LendingPool calls
 @external
 def seize(
     loan_id: uint256,
@@ -13,29 +13,8 @@ def seize(
     ...
 
 
-@external
-def settle(loan_id: uint256, recovered: uint256):
-    ...
-
-
-@external
-def emergency_claim(loan_id: uint256):
-    ...
-
-
+# Views reads
 @external
 @view
 def pending_count() -> uint256:
-    ...
-
-
-@external
-@view
-def total_seized_principal() -> uint256:
-    ...
-
-
-@external
-@view
-def total_recovered() -> uint256:
     ...

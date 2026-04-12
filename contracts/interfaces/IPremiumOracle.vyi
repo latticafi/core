@@ -1,6 +1,6 @@
 # pragma version ~=0.4.0
 
-
+# PoolCore calls
 @external
 def verify_quote(
     borrower: address,
@@ -14,17 +14,8 @@ def verify_quote(
     ...
 
 
+# Views reads
 @external
 @view
 def get_nonce(borrower: address) -> uint256:
-    ...
-
-
-@external
-def set_paused(_paused: bool):
-    ...
-
-
-@external
-def set_pricer(new_pricer: address):
     ...
