@@ -99,6 +99,7 @@ def submit_price(
     pd: PriceData = self.prices[condition_id]
     assert block.timestamp >= pd.circuit_breaker_until, "circuit breaker active"
     assert timestamp > pd.current_timestamp, "not newer"
+    assert timestamp <= block.timestamp, "future timestamp"
 
     # Verify signature
     struct_hash: bytes32 = keccak256(

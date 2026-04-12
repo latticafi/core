@@ -106,8 +106,7 @@ def main():
     print("\nForking...")
     boa.env.fork(cfg.rpc_url)
 
-    if not dry_run:
-        boa.env.eoa = cfg.deployer
+    boa.env.eoa = cfg.deployer
 
     print("Deploying Lattica stack...")
     addresses = deploy_stack(cfg)

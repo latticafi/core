@@ -104,6 +104,13 @@ class TestPriceSubmit:
         price, _ = feed.get_price(CONDITION_ID)
         assert price == 5 * 10**17
 
+    def test_future_timestamp_reverts(self, feed):
+        future_ts = boa.env.evm.patch.timestamp + 9999
+        deadline = future_ts + 3600
+        sig = sign_price(feed.address, CONDITION_ID, 5 * 10**17, future_ts, deadline, 1)
+        with boa.reverts("future timestamp"):
+            feed.submit_price(CONDITION_ID, 5 * 10**17, future_ts, deadline, sig)
+
 
 class TestDeviationFilter:
     def test_below_min_deviation_reverts(self, feed):
