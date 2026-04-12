@@ -1,5 +1,5 @@
 """
-Liquidator tests: collateral seizure, bot settlement, emergency claims.
+Liquidator tests: collateral seizure, operator settlement, emergency claims.
 """
 
 import boa
@@ -20,8 +20,8 @@ def pool():
 
 
 @pytest.fixture
-def bot():
-    return boa.env.generate_address("bot")
+def liquidator_operator():
+    return boa.env.generate_address("liquidator")
 
 
 @pytest.fixture
@@ -30,8 +30,8 @@ def ctf_token():
 
 
 @pytest.fixture
-def liquidator(pool, bot, ctf_token, admin):
-    return boa.load("contracts/Liquidator.vy", pool, bot, ctf_token.address, admin)
+def liquidator(pool, liquidator_operator, ctf_token, admin):
+    return boa.load("contracts/Liquidator.vy", pool, liquidator_operator, ctf_token.address, admin)
 
 
 class TestSeize:
@@ -56,32 +56,32 @@ class TestSeize:
 
 
 class TestSettle:
-    def test_settle_clears_pending(self, liquidator, pool, bot):
+    def test_settle_clears_pending(self, liquidator, pool, liquidator_operator):
         with boa.env.prank(pool):
             liquidator.seize(1, TOKEN_ID, 1000 * 10**6, CONDITION_ID, 500 * 10**6, 2_000_000_000)
-        with boa.env.prank(bot):
+        with boa.env.prank(liquidator_operator):
             liquidator.settle(1, 300 * 10**6)
         assert liquidator.pending_count() == 0
         assert liquidator.total_recovered() == 300 * 10**6
 
-    def test_settle_zero_recovery(self, liquidator, pool, bot):
+    def test_settle_zero_recovery(self, liquidator, pool, liquidator_operator):
         with boa.env.prank(pool):
             liquidator.seize(1, TOKEN_ID, 1000 * 10**6, CONDITION_ID, 500 * 10**6, 2_000_000_000)
-        with boa.env.prank(bot):
+        with boa.env.prank(liquidator_operator):
             liquidator.settle(1, 0)
         assert liquidator.pending_count() == 0
         assert liquidator.total_recovered() == 0
 
-    def test_double_settle_reverts(self, liquidator, pool, bot):
+    def test_double_settle_reverts(self, liquidator, pool, liquidator_operator):
         with boa.env.prank(pool):
             liquidator.seize(1, TOKEN_ID, 1000 * 10**6, CONDITION_ID, 500 * 10**6, 2_000_000_000)
-        with boa.env.prank(bot):
+        with boa.env.prank(liquidator_operator):
             liquidator.settle(1, 300 * 10**6)
             with boa.reverts("already settled"):
                 liquidator.settle(1, 100 * 10**6)
 
-    def test_settle_nonexistent_reverts(self, liquidator, bot):
-        with boa.env.prank(bot):
+    def test_settle_nonexistent_reverts(self, liquidator, liquidator_operator):
+        with boa.env.prank(liquidator_operator):
             with boa.reverts("no pending liquidation"):
                 liquidator.settle(999, 100 * 10**6)
 
@@ -90,7 +90,7 @@ class TestSettle:
             liquidator.seize(1, TOKEN_ID, 1000 * 10**6, CONDITION_ID, 500 * 10**6, 2_000_000_000)
         rando = boa.env.generate_address("rando")
         with boa.env.prank(rando):
-            with boa.reverts("not bot"):
+            with boa.reverts("not operator"):
                 liquidator.settle(1, 300 * 10**6)
 
 
@@ -119,12 +119,12 @@ class TestEmergencyClaim:
 
 class TestBotRotation:
     def test_set_bot(self, liquidator, admin):
-        new_bot = boa.env.generate_address("new_bot")
+        new_operator = boa.env.generate_address("new_operator")
         with boa.env.prank(admin):
-            liquidator.set_bot(new_bot)
-        assert liquidator.bot() == new_bot
+            liquidator.set_operator(new_operator)
+        assert liquidator.operator() == new_operator
 
     def test_set_bot_zero_reverts(self, liquidator, admin):
         with boa.env.prank(admin):
             with boa.reverts("zero address"):
-                liquidator.set_bot("0x" + "00" * 20)
+                liquidator.set_operator("0x" + "00" * 20)

@@ -38,7 +38,7 @@ class TestRetentionRate:
     def test_empty_reserve_returns_max_retention(self, reserve):
         assert reserve.current_retention_bps() == 5000
 
-    def test_funded_reserve_returns_base_retention(self, reserve, usdc, pool):
+    def test_funded_reserve_returns_base_retention(self, reserve, usdc):
         # Fund reserve to target
         usdc.mint(reserve.address, 10_000 * 10**6)
         assert reserve.current_retention_bps() == 1000

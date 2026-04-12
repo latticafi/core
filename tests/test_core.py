@@ -1,9 +1,9 @@
 """
 Core functionality tests for Lattica protocol.
-Covers: deposit, withdraw, borrow, repay, roll, liquidation, claim_expired.
 """
 
 import boa
+import pytest
 
 from conftest import (
     BORROW_AMOUNT,
@@ -13,6 +13,7 @@ from conftest import (
     PREMIUM_BPS,
     TOKEN_ID,
     sign_quote,
+    submit_signed_price,
 )
 
 # Deposit / Withdraw
@@ -47,9 +48,7 @@ class TestDeposit:
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
             shares = pool.deposit(10_000 * 10**6)
-        # Dead shares = 1000, so lender gets amount - 1000
         assert shares == 10_000 * 10**6 - 1000
-        # Total shares includes dead shares
         assert core.total_shares() == 10_000 * 10**6
 
 
@@ -68,7 +67,7 @@ class TestWithdraw:
         assert usdc.balanceOf(lender) == balance_before + amount
         assert core.share_balance(lender) == 0
 
-    def test_withdraw_more_than_balance_reverts(self, pool, core, usdc, lender):
+    def test_withdraw_more_than_balance_reverts(self, pool, usdc, lender):
         usdc.mint(lender, 10_000 * 10**6)
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
@@ -82,9 +81,9 @@ class TestWithdraw:
 
 
 class TestBorrow:
-    def test_borrow_creates_loan(self, pool, core, oracle, usdc, ctf_token, borrower_addr, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_borrow_creates_loan(self, pool, core, oracle, usdc, ctf_token, borrower_addr):
         deadline = boa.env.evm.patch.timestamp + 3600
-        nonce = 0
         sig = sign_quote(
             oracle.address,
             borrower_addr,
@@ -92,7 +91,7 @@ class TestBorrow:
             PREMIUM_BPS,
             BORROW_AMOUNT,
             deadline,
-            nonce,
+            0,
             1,
         )
 
@@ -105,27 +104,23 @@ class TestBorrow:
                 EPOCH_24H,
                 PREMIUM_BPS,
                 deadline,
-                nonce,
+                0,
                 sig,
             )
 
         loan = core.get_loan(loan_id)
-        assert loan[0] == borrower_addr  # borrower
-        assert loan[4] == BORROW_AMOUNT  # principal
-        assert loan[3] == COLLATERAL_AMOUNT  # collateral_amount
-        assert not loan[11]  # repaid = False
-        assert not loan[12]  # liquidated = False
-
-        # Borrower received net disburse (borrow - premium - interest)
+        assert loan[0] == borrower_addr
+        assert loan[4] == BORROW_AMOUNT
+        assert loan[3] == COLLATERAL_AMOUNT
+        assert not loan[11]
+        assert not loan[12]
         assert usdc.balanceOf(borrower_addr) > usdc_before
-
-        # Collateral moved from borrower to pool
         assert ctf_token.balanceOf(pool.address, TOKEN_ID) == COLLATERAL_AMOUNT
         assert ctf_token.balanceOf(borrower_addr, TOKEN_ID) == 0
 
-    def test_borrow_above_max_ltv_reverts(self, pool, oracle, borrower_addr, funded):
-        # Try to borrow almost entire collateral value (LTV > 90%)
-        huge_borrow = 550 * 10**6  # collateral at 0.60 = 600 USDC value, 550/600 = 91.6%
+    @pytest.mark.usefixtures("funded")
+    def test_borrow_above_max_ltv_reverts(self, pool, oracle, borrower_addr):
+        huge_borrow = 550 * 10**6
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -152,9 +147,8 @@ class TestBorrow:
 
 
 class TestRepay:
-    def test_repay_returns_collateral(
-        self, pool, core, oracle, usdc, ctf_token, borrower_addr, funded
-    ):
+    @pytest.mark.usefixtures("funded")
+    def test_repay_returns_collateral(self, pool, core, oracle, ctf_token, borrower_addr):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -182,12 +176,13 @@ class TestRepay:
             pool.repay(loan_id)
 
         loan = core.get_loan(loan_id)
-        assert loan[11]  # repaid
+        assert loan[11]
         assert ctf_token.balanceOf(borrower_addr, TOKEN_ID) == COLLATERAL_AMOUNT
         assert ctf_token.balanceOf(pool.address, TOKEN_ID) == 0
         assert core.total_borrowed() == 0
 
-    def test_repay_wrong_borrower_reverts(self, pool, oracle, usdc, borrower_addr, lender, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_repay_wrong_borrower_reverts(self, pool, oracle, borrower_addr, lender):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -219,7 +214,8 @@ class TestRepay:
 
 
 class TestRoll:
-    def test_roll_extends_loan(self, pool, core, oracle, usdc, borrower_addr, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_roll_extends_loan(self, pool, core, oracle, borrower_addr):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -243,7 +239,6 @@ class TestRoll:
                 sig,
             )
 
-        # Roll into new epoch
         new_deadline = boa.env.evm.patch.timestamp + 7200
         sig2 = sign_quote(
             oracle.address,
@@ -260,29 +255,28 @@ class TestRoll:
 
         old_loan = core.get_loan(old_id)
         new_loan = core.get_loan(new_id)
-        assert old_loan[11]  # old repaid
+        assert old_loan[11]
         assert new_loan[0] == borrower_addr
-        assert new_loan[4] == BORROW_AMOUNT  # same principal
-        assert new_loan[3] == COLLATERAL_AMOUNT  # same collateral
+        assert new_loan[4] == BORROW_AMOUNT
+        assert new_loan[3] == COLLATERAL_AMOUNT
 
 
 # Liquidation
 
 
 class TestLiquidation:
+    @pytest.mark.usefixtures("funded")
     def test_trigger_liquidation_on_underwater_loan(
         self,
         pool,
         core,
         oracle,
-        usdc,
         ctf_token,
-        price_feed,
-        price_updater,
+        deploy_stack,
         borrower_addr,
         liquidator,
-        funded,
     ):
+        price_feed = deploy_stack["price_feed"]
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -306,24 +300,22 @@ class TestLiquidation:
                 sig,
             )
 
-        # Crash the price to trigger liquidation
+        # Crash price via signed attestation
         liq_price = core.get_liquidation_price(loan_id)
-        crash_price = liq_price - 10**14  # slightly below liq price
-        with boa.env.prank(price_updater):
-            price_feed.update_price(CONDITION_ID, crash_price)
+        crash_price = liq_price - 10**14
+        boa.env.time_travel(seconds=1)
+        submit_signed_price(price_feed, CONDITION_ID, crash_price)
 
-        # Anyone can trigger
         pool.trigger_liquidation(loan_id)
 
         loan = core.get_loan(loan_id)
-        assert loan[12]  # liquidated
+        assert loan[12]
         assert core.total_borrowed() == 0
-
-        # Collateral moved to liquidator
         assert ctf_token.balanceOf(liquidator.address, TOKEN_ID) == COLLATERAL_AMOUNT
         assert ctf_token.balanceOf(pool.address, TOKEN_ID) == 0
 
-    def test_trigger_healthy_loan_reverts(self, pool, core, oracle, borrower_addr, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_trigger_healthy_loan_reverts(self, pool, oracle, borrower_addr):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -351,8 +343,15 @@ class TestLiquidation:
 
 
 class TestClaimExpired:
+    @pytest.mark.usefixtures("funded")
     def test_claim_expired_after_epoch(
-        self, pool, core, oracle, ctf_token, liquidator, borrower_addr, funded
+        self,
+        pool,
+        core,
+        oracle,
+        ctf_token,
+        liquidator,
+        borrower_addr,
     ):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
@@ -377,16 +376,15 @@ class TestClaimExpired:
                 sig,
             )
 
-        # Fast forward past epoch end
         boa.env.time_travel(seconds=EPOCH_24H + 1)
-
         pool.claim_expired(loan_id)
 
         loan = core.get_loan(loan_id)
-        assert loan[12]  # liquidated
+        assert loan[12]
         assert ctf_token.balanceOf(liquidator.address, TOKEN_ID) == COLLATERAL_AMOUNT
 
-    def test_claim_expired_before_epoch_reverts(self, pool, oracle, borrower_addr, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_claim_expired_before_epoch_reverts(self, pool, oracle, borrower_addr):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -412,7 +410,8 @@ class TestClaimExpired:
         with boa.reverts("epoch not expired"):
             pool.claim_expired(loan_id)
 
-    def test_claim_nonexistent_loan_reverts(self, pool, funded):
+    @pytest.mark.usefixtures("funded")
+    def test_claim_nonexistent_loan_reverts(self, pool):
         with boa.reverts("loan does not exist"):
             pool.claim_expired(99999)
 
@@ -449,9 +448,8 @@ class TestSharePrice:
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
             pool.deposit(10_000 * 10**6)
-        # Share price should be ~1 USDC (10**6)
         price = core.share_price()
-        assert price >= 999_000  # within 0.1% of 1 USDC
+        assert price >= 999_000
         assert price <= 1_001_000
 
 
@@ -459,20 +457,19 @@ class TestSharePrice:
 
 
 class TestLiquidatorSettle:
-    def test_bot_settles_liquidation(
+    @pytest.mark.usefixtures("funded")
+    def test_operator_settles_liquidation(
         self,
         pool,
         core,
         oracle,
-        usdc,
         ctf_token,
-        price_feed,
-        price_updater,
+        deploy_stack,
         borrower_addr,
         liquidator,
-        bot,
-        funded,
+        liquidator_operator,
     ):
+        price_feed = deploy_stack["price_feed"]
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address,
@@ -496,16 +493,14 @@ class TestLiquidatorSettle:
                 sig,
             )
 
-        # Crash price
         liq_price = core.get_liquidation_price(loan_id)
-        with boa.env.prank(price_updater):
-            price_feed.update_price(CONDITION_ID, liq_price - 10**14)
+        boa.env.time_travel(seconds=1)
+        submit_signed_price(price_feed, CONDITION_ID, liq_price - 10**14)
 
         pool.trigger_liquidation(loan_id)
         assert liquidator.pending_count() == 1
 
-        # Bot settles (recovery USDC sent directly to pool, settle is accounting only)
-        with boa.env.prank(bot):
+        with boa.env.prank(liquidator_operator):
             liquidator.settle(loan_id, 200 * 10**6)
 
         assert liquidator.pending_count() == 0
