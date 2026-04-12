@@ -1,5 +1,8 @@
 {
+  "reportAttributeAccessIssue": "none",
+  "reportUnusedVariable": "warning",
+  "reportUnusedImport": "warning",
+  "pythonVersion": "3.12",
   "venvPath": ".",
-  "venv": ".venv",
-  "reportMissingModuleSource": false
+  "venv": ".venv"
 }
