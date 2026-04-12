@@ -16,7 +16,7 @@ class DeployConfig:
     pricer_address: str
     liquidator_address: str
     guardian_address: str
-    feed_updater_address: str
+    oracle_signer_address: str
     usdc_address: str
     ctf_address: str
 
@@ -40,7 +40,7 @@ def load_config() -> DeployConfig:
         pricer_address=_require("PRICER_ADDRESS"),
         liquidator_address=_require("LIQUIDATOR_ADDRESS"),
         guardian_address=_require("GUARDIAN_ADDRESS"),
-        feed_updater_address=_require("FEED_UPDATER_ADDRESS"),
+        oracle_signer_address=_require("ORACLE_SIGNER_ADDRESS"),
         usdc_address=_require("USDC_ADDRESS"),
         ctf_address=_require("CTF_ADDRESS"),
     )

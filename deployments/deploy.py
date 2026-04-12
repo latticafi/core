@@ -15,7 +15,7 @@ def deploy_stack(cfg) -> dict:
 
     price_feed = boa.load(
         "contracts/PriceFeed.vy",
-        cfg.feed_updater_address,
+        cfg.oracle_signer_address,
         cfg.deployer,
         10**14,
         2 * 10**17,
@@ -90,7 +90,7 @@ def deploy_stack(cfg) -> dict:
         "guardian": cfg.guardian_address,
         "pricer": cfg.pricer_address,
         "liquidator_operator": cfg.liquidator_address,
-        "feed_updater": cfg.feed_updater_address,
+        "oracle_signer": cfg.oracle_signer_address,
     }
 
 
