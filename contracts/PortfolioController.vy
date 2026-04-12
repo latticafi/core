@@ -5,7 +5,6 @@
 @notice Enforces portfolio-level risk constraints: per-condition caps,
         per-cluster budgets, resolution-window concentration limits,
         and calibration-driven circuit breaker.
-
 @dev    Cluster assignments are set by admin based on off-chain
         co-movement analysis updated each epoch.
 """

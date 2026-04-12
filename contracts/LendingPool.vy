@@ -274,6 +274,7 @@ def roll_loan(
 # Liquidation
 
 @external
+# No pause check — liquidations must work even when pool is paused
 def trigger_liquidation(loan_id: uint256):
     assert self.initialized, "not initialized"
 
@@ -310,6 +311,7 @@ def trigger_liquidation(loan_id: uint256):
 
 
 @external
+# No pause check — expiry claims must work even when pool is paused
 def claim_expired(loan_id: uint256):
     assert self.initialized, "not initialized"
 

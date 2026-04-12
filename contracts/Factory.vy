@@ -90,8 +90,8 @@ def __init__(_admin: address, _usdc: address, _ctf_token: address):
 @external
 def deploy_pool(
     _pricer: address,
-    _price_updater: address,
-    _bot: address,
+    _oracle_signer: address,
+    _liquidator_operator: address,
     _guardian: address,
 ):
     assert msg.sender == self.admin, "not admin"
@@ -114,13 +114,16 @@ def deploy_pool(
     )
 
     # 2. Deploy PriceFeed (no dependencies)
+    _min_dev: uint256 = 10**14
+    _cb_thresh: uint256 = 2 * 10**17
+    _cb_cool: uint256 = 3600
     _price_feed: address = create_from_blueprint(
         self.price_feed_blueprint,
-        _price_updater,
+        _oracle_signer,
         self.admin,
-        10**14,
-        2 * 10**17,
-        3600,
+        _min_dev,
+        _cb_thresh,
+        _cb_cool,
         code_offset=3,
     )
 
@@ -171,7 +174,7 @@ def deploy_pool(
     _liquidator: address = create_from_blueprint(
         self.liquidator_blueprint,
         _pool,
-        _bot,
+        _liquidator_operator,
         self.ctf_token,
         self.admin,
         code_offset=3,

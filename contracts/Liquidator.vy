@@ -4,7 +4,7 @@
 @title Lattica Liquidator
 @author Lattica Protocol
 @license MIT
-@notice Holds seized collateral. Protocol bot sells on Polymarket CLOB,
+@notice Holds seized collateral. Liquidation operator sells on Polymarket CLOB,
         sends recovery USDC directly to LendingPool address,
         then calls settle() here to mark the liquidation resolved.
 """
@@ -33,7 +33,7 @@ struct PendingLiquidation:
 # Storage
 
 pool: public(address)
-bot: public(address)
+operator: public(address)
 ctf_token: public(address)
 
 pending: public(HashMap[uint256, PendingLiquidation])
@@ -64,7 +64,7 @@ event EmergencyClaimed:
 @deploy
 def __init__(
     pool_addr: address,
-    bot_addr: address,
+    operator_addr: address,
     ctf_token_addr: address,
     admin: address,
 ):
@@ -72,7 +72,7 @@ def __init__(
     ow.__init__()
     ow._transfer_ownership(admin)
     self.pool = pool_addr
-    self.bot = bot_addr
+    self.operator = operator_addr
     self.ctf_token = ctf_token_addr
 
 
@@ -109,12 +109,12 @@ def seize(
     )
 
 
-# Called by bot after selling collateral on CLOB and sending
+# Called by liquidation operator after selling collateral on CLOB and sending
 # recovery USDC directly to pool address.
 
 @external
 def settle(loan_id: uint256, recovered: uint256):
-    assert msg.sender == self.bot, "not bot"
+    assert msg.sender == self.operator, "not operator"
     p: PendingLiquidation = self.pending[loan_id]
     assert p.seized_at > 0, "no pending liquidation"
     assert not p.settled, "already settled"
@@ -147,10 +147,10 @@ def emergency_claim(loan_id: uint256):
 # Admin
 
 @external
-def set_bot(new_bot: address):
+def set_operator(new_operator: address):
     ownable._check_owner()
-    assert new_bot != empty(address), "zero address"
-    self.bot = new_bot
+    assert new_operator != empty(address), "zero address"
+    self.operator = new_operator
 
 
 # ERC1155 receiver (snekmate-compatible signatures)

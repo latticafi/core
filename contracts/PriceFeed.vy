@@ -2,30 +2,41 @@
 
 """
 @title Lattica Price Feed
-@notice Receives off-chain price updates for prediction market positions.
-        Enforces minimum deviation threshold and circuit breaker on large jumps.
+@notice Pull-based oracle. Anyone submits a signed price attestation from
+        the trusted oracle signer. The signer watches Polymarket CLOB
+        off-chain and serves signed prices via HTTP. Zero gas for the oracle.
+@dev    Uses snekmate ecdsa + eip712 for signature verification.
 """
 
 from snekmate.auth import ownable
 from snekmate.auth import ownable_2step as ow
+from snekmate.utils import ecdsa
+from snekmate.utils import eip712_domain_separator as eip712
 
 initializes: ownable
 initializes: ow[ownable := ownable]
+initializes: eip712
+
+# EIP-712 Struct Typehash
+
+PRICE_TYPEHASH: constant(bytes32) = keccak256(
+    "PriceAttestation(bytes32 conditionId,uint256 price,uint256 timestamp,uint256 deadline)"
+)
 
 # Storage
 
 struct PriceData:
-    current_price: uint256  # 18 decimals, [0, 1e18]
+    current_price: uint256
     previous_price: uint256
     current_timestamp: uint256
     previous_timestamp: uint256
-    circuit_breaker_until: uint256  # paused until this timestamp
+    circuit_breaker_until: uint256
 
 
-updater: public(address)
-min_deviation: public(uint256)  # min absolute change in 1e18
-circuit_breaker_threshold: public(uint256)  # max single update change
-circuit_breaker_cooldown: public(uint256)  # cooldown period in seconds
+signer: public(address)
+min_deviation: public(uint256)
+circuit_breaker_threshold: public(uint256)
+circuit_breaker_cooldown: public(uint256)
 
 prices: public(HashMap[bytes32, PriceData])
 
@@ -43,11 +54,16 @@ event CircuitBreakerTripped:
     new_price: uint256
 
 
+event SignerRotated:
+    old_signer: address
+    new_signer: address
+
+
 # Constructor
 
 @deploy
 def __init__(
-    _updater: address,
+    _signer: address,
     admin: address,
     _min_deviation: uint256,
     _cb_threshold: uint256,
@@ -56,7 +72,8 @@ def __init__(
     ownable.__init__()
     ow.__init__()
     ow._transfer_ownership(admin)
-    self.updater = _updater
+    eip712.__init__("LatticaPriceFeed", "1")
+    self.signer = _signer
     self.min_deviation = _min_deviation
     self.circuit_breaker_threshold = _cb_threshold
     self.circuit_breaker_cooldown = _cb_cooldown
@@ -65,16 +82,36 @@ def __init__(
 # Core
 
 @external
-def update_price(condition_id: bytes32, price: uint256):
-    assert msg.sender == self.updater, "not updater"
+def submit_price(
+    condition_id: bytes32,
+    price: uint256,
+    timestamp: uint256,
+    deadline: uint256,
+    signature: Bytes[65],
+):
+    """
+    @notice Permissionless — anyone can submit a signed price attestation.
+            Oracle service signs off-chain, user/backend submits on-chain.
+    """
     assert price <= 10**18, "invalid price"
+    assert block.timestamp <= deadline, "attestation expired"
 
     pd: PriceData = self.prices[condition_id]
     assert block.timestamp >= pd.circuit_breaker_until, "circuit breaker active"
+    assert timestamp > pd.current_timestamp, "not newer"
+
+    # Verify signature
+    struct_hash: bytes32 = keccak256(
+        abi_encode(PRICE_TYPEHASH, condition_id, price, timestamp, deadline)
+    )
+    digest: bytes32 = eip712._hash_typed_data_v4(struct_hash)
+    recovered: address = ecdsa._recover_sig(digest, signature)
+    assert recovered != empty(address), "invalid signature"
+    assert recovered == self.signer, "wrong signer"
 
     current: uint256 = pd.current_price
 
-    # Filter noise (skip if first update)
+    # Deviation + circuit breaker (skip on first update)
     if current > 0:
         delta: uint256 = 0
         if price > current:
@@ -84,7 +121,6 @@ def update_price(condition_id: bytes32, price: uint256):
 
         assert delta >= self.min_deviation, "below min deviation"
 
-        # Reject update entirely if move is too large
         if delta > self.circuit_breaker_threshold:
             self.prices[condition_id].circuit_breaker_until = (
                 block.timestamp + self.circuit_breaker_cooldown
@@ -92,14 +128,14 @@ def update_price(condition_id: bytes32, price: uint256):
             log CircuitBreakerTripped(
                 condition_id=condition_id, old_price=current, new_price=price
             )
-            return  # price NOT stored — old price remains current
+            return
     self.prices[condition_id].previous_price = current
     self.prices[condition_id].previous_timestamp = pd.current_timestamp
     self.prices[condition_id].current_price = price
-    self.prices[condition_id].current_timestamp = block.timestamp
+    self.prices[condition_id].current_timestamp = timestamp
 
     log PriceUpdated(
-        condition_id=condition_id, price=price, timestamp=block.timestamp
+        condition_id=condition_id, price=price, timestamp=timestamp
     )
 
 
@@ -125,9 +161,12 @@ def reset_circuit_breaker(condition_id: bytes32):
 
 
 @external
-def set_updater(new_updater: address):
+def set_signer(new_signer: address):
     ownable._check_owner()
-    self.updater = new_updater
+    assert new_signer != empty(address), "zero address"
+    old: address = self.signer
+    self.signer = new_signer
+    log SignerRotated(old_signer=old, new_signer=new_signer)
 
 
 @external
