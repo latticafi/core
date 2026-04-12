@@ -5,7 +5,6 @@ struct MarketParams:
     token_id: uint256
     min_ltv_bps: uint256
     max_ltv_bps: uint256
-    max_exposure: uint256
     resolution_time: uint256
     origination_cutoff: uint256
     active: bool

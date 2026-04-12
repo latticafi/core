@@ -4,9 +4,6 @@
 @title Lattica Factory
 @author Lattica Protocol
 @license MIT
-@notice Deployment coordinator. Deploys one pool stack from EIP-5202
-        blueprints and wires all contracts together atomically.
-        NOT a multi-pool registry. Lattica is a single-pool protocol.
 """
 
 from interfaces import ILendingPool as ILendingPool
@@ -49,7 +46,7 @@ deployed: public(bool)
 default_reserve_target: public(uint256)
 default_base_retention_bps: public(uint256)
 default_max_retention_bps: public(uint256)
-default_max_exposure: public(uint256)
+default_max_total_exposure: public(uint256)
 
 # Events
 
@@ -82,7 +79,7 @@ def __init__(_admin: address, _usdc: address, _ctf_token: address):
     self.default_reserve_target = 100_000 * 10**6
     self.default_base_retention_bps = 1000
     self.default_max_retention_bps = 5000
-    self.default_max_exposure = 10_000_000 * 10**6
+    self.default_max_total_exposure = 10_000_000 * 10**6
 
 
 # Deploy
@@ -151,7 +148,7 @@ def deploy_pool(
         self.controller_blueprint,
         _core,
         self.admin,
-        self.default_max_exposure,
+        self.default_max_total_exposure,
         code_offset=3,
     )
 

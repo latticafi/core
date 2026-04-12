@@ -246,6 +246,4 @@ def funded(pool, core, usdc, ctf_token, lender, borrower_addr, admin):
 
     resolution = boa.env.evm.patch.timestamp + 30 * 86400
     with boa.env.prank(admin):
-        core.set_market(
-            CONDITION_ID, (TOKEN_ID, 1000, 9000, 1_000_000 * 10**6, resolution, 2 * 3600, True)
-        )
+        core.set_market(CONDITION_ID, (TOKEN_ID, 1000, 9000, resolution, 2 * 3600, True))
