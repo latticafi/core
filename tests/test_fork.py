@@ -52,7 +52,7 @@ USDC_WHALE = "0x625E7708f30cA75bfd92586e17077590C60eb4cD"
 
 @pytest.fixture(scope="module", autouse=True)
 def fork():
-    boa.env.fork(os.environ["RPC_URL"])
+    boa.fork(os.environ["RPC_URL"], block_identifier="latest")
     yield
 
 

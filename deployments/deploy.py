@@ -70,7 +70,7 @@ def main():
     print(f"ctf:       {cfg.ctf_address}")
 
     print("\nForking...")
-    boa.env.fork(cfg.rpc_url)
+    boa.fork(cfg.rpc_url, block_identifier="latest")
     boa.env.eoa = cfg.deployer
 
     print("Deploying Lattica stack...")
