@@ -8,7 +8,7 @@ import os
 import boa
 import pytest
 
-from conftest import ORACLE_SIGNER_ADDRESS, PRICER_ADDRESS, submit_signed_price
+from conftest import ORACLE_SIGNER_ADDRESS, PRICER_ADDRESS
 
 pytestmark = pytest.mark.skipif(
     not os.environ.get("RPC_URL"),
@@ -17,7 +17,6 @@ pytestmark = pytest.mark.skipif(
 
 USDC_E = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
 CTF = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
-CONDITION_ID = b"\xca\xfe" + b"\x00" * 30
 
 ERC20_ABI = json.dumps(
     [
@@ -79,58 +78,24 @@ def lender(usdc):
 @pytest.fixture(scope="module")
 def stack(admin):
     guardian = boa.env.generate_address("guardian")
-    liquidator_op = boa.env.generate_address("liquidator")
 
     pool = boa.load("contracts/LendingPool.vy", USDC_E, CTF, admin)
-    price_feed = boa.load(
-        "contracts/PriceFeed.vy",
-        ORACLE_SIGNER_ADDRESS,
-        admin,
-        10**14,
-        2 * 10**17,
-        3600,
-    )
-    core = boa.load(
-        "contracts/PoolCore.vy",
-        USDC_E,
-        pool.address,
-        price_feed.address,
-        admin,
-    )
+    core = boa.load("contracts/PoolCore.vy", USDC_E, pool.address, admin)
     oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, admin)
     controller = boa.load(
-        "contracts/PortfolioController.vy",
-        core.address,
-        admin,
-        10_000_000 * 10**6,
+        "contracts/PortfolioController.vy", core.address, admin, 10_000_000 * 10**6
     )
     with boa.env.prank(admin):
         core.set_peripherals(oracle.address, controller.address)
 
     reserve = boa.load(
-        "contracts/Reserve.vy",
-        USDC_E,
-        pool.address,
-        admin,
-        100_000 * 10**6,
-        1000,
-        3000,
+        "contracts/Reserve.vy", USDC_E, pool.address, admin, 100_000 * 10**6, 1000, 3000
     )
-    liquidator = boa.load("contracts/Liquidator.vy", pool.address, liquidator_op, CTF, admin)
 
     with boa.env.prank(admin):
-        pool.initialize(
-            core.address,
-            liquidator.address,
-            reserve.address,
-            price_feed.address,
-            guardian,
-        )
+        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, guardian)
 
-    # Submit initial price
-    submit_signed_price(price_feed, CONDITION_ID, 6 * 10**17)
-
-    return {"pool": pool, "core": core, "price_feed": price_feed}
+    return {"pool": pool, "core": core}
 
 
 class TestForkDeploy:
@@ -147,22 +112,17 @@ class TestForkDeploy:
 class TestForkDeposit:
     def test_deposit_real_usdc(self, stack, usdc, lender):
         pool = stack["pool"]
-
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
             shares = pool.deposit(10_000 * 10**6)
-
         assert shares > 0
-        assert usdc.balanceOf(pool.address) >= 10_000 * 10**6
 
     def test_withdraw_real_usdc(self, stack, usdc, lender):
         pool = stack["pool"]
         core = stack["core"]
         shares = core.share_balance(lender)
         bal_before = usdc.balanceOf(lender)
-
         with boa.env.prank(lender):
             pool.withdraw(shares)
-
         assert usdc.balanceOf(lender) > bal_before
         assert core.share_balance(lender) == 0

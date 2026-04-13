@@ -4,21 +4,21 @@
 @title Lattica Lending Pool
 @author Lattica Protocol
 @license MIT
-@notice User-facing entry point. Holds USDC and ERC1155 collateral.
-        Handles all token movements and Reserve interactions.
-        Delegates state and computation to PoolCore.
 """
 
 from ethereum.ercs import IERC20
 from snekmate.auth import ownable
 from snekmate.auth import ownable_2step as ow
 from snekmate.utils import pausable as ps
+from snekmate.utils import ecdsa
+from snekmate.utils import eip712_domain_separator as eip712
 from snekmate.tokens.interfaces import IERC1155
 from snekmate.tokens.interfaces import IERC1155Receiver
 
 initializes: ownable
 initializes: ow[ownable := ownable]
 initializes: ps
+initializes: eip712
 
 exports: ow.owner
 exports: ps.paused
@@ -26,24 +26,23 @@ exports: ps.paused
 implements: IERC1155Receiver
 
 from interfaces import IPoolCore as IPoolCore
-from interfaces import ILiquidator as ILiquidator
-from interfaces import IPriceFeed as IPriceFeed
 from interfaces import IReserve as IReserve
-
 
 # Constants
 
 PRECISION: constant(uint256) = 10_000
-MAX_PRICE_AGE: constant(uint256) = 3600
+
+PRICE_TYPEHASH: constant(bytes32) = keccak256(
+    "PriceAttestation(bytes32 conditionId,uint256 price,uint256 timestamp,uint256 deadline)"
+)
 
 # Storage
 
 usdc: public(IERC20)
 ctf_token: public(address)
 core: public(address)
-liquidator: public(address)
 reserve: public(address)
-price_feed: public(address)
+oracle_signer: public(address)
 guardian: public(address)
 initialized: public(bool)
 
@@ -87,6 +86,10 @@ event LoanRolled:
 
 event LoanLiquidated:
     loan_id: indexed(uint256)
+    collateral_to: indexed(address)
+    token_id: uint256
+    collateral_amount: uint256
+    principal: uint256
 
 
 # Constructor + Init
@@ -97,6 +100,7 @@ def __init__(usdc_addr: address, ctf_token_addr: address, admin: address):
     ow.__init__()
     ow._transfer_ownership(admin)
     ps.__init__()
+    eip712.__init__("LatticaPriceFeed", "1")
     self.usdc = IERC20(usdc_addr)
     self.ctf_token = ctf_token_addr
 
@@ -104,22 +108,19 @@ def __init__(usdc_addr: address, ctf_token_addr: address, admin: address):
 @external
 def initialize(
     core_addr: address,
-    liquidator_addr: address,
     reserve_addr: address,
-    price_feed_addr: address,
+    _oracle_signer: address,
     guardian_addr: address,
 ):
     assert not self.initialized, "already initialized"
     ownable._check_owner()
     assert core_addr != empty(address), "zero core"
-    assert liquidator_addr != empty(address), "zero liquidator"
     assert reserve_addr != empty(address), "zero reserve"
-    assert price_feed_addr != empty(address), "zero price feed"
+    assert _oracle_signer != empty(address), "zero signer"
 
     self.core = core_addr
-    self.liquidator = liquidator_addr
     self.reserve = reserve_addr
-    self.price_feed = price_feed_addr
+    self.oracle_signer = _oracle_signer
     self.guardian = guardian_addr
     self.initialized = True
 
@@ -128,6 +129,30 @@ def initialize(
 def _check():
     assert self.initialized, "not initialized"
     ps._require_not_paused()
+
+
+@internal
+@view
+def _verify_price(
+    condition_id: bytes32,
+    price: uint256,
+    timestamp: uint256,
+    deadline: uint256,
+    signature: Bytes[65],
+) -> uint256:
+    assert price > 0 and price <= 10**18, "invalid price"
+    assert block.timestamp <= deadline, "attestation expired"
+    assert timestamp <= block.timestamp, "future timestamp"
+
+    struct_hash: bytes32 = keccak256(
+        abi_encode(PRICE_TYPEHASH, condition_id, price, timestamp, deadline)
+    )
+    digest: bytes32 = eip712._hash_typed_data_v4(struct_hash)
+    recovered: address = ecdsa._recover_sig(digest, signature)
+    assert recovered != empty(address), "invalid signature"
+    assert recovered == self.oracle_signer, "wrong signer"
+
+    return price
 
 
 # Lender
@@ -166,8 +191,16 @@ def borrow(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
+    price_timestamp: uint256,
+    price_deadline: uint256,
+    price_signature: Bytes[65],
 ) -> uint256:
     self._check()
+
+    verified_price: uint256 = self._verify_price(
+        condition_id, price, price_timestamp, price_deadline, price_signature
+    )
 
     loan_id: uint256 = extcall IPoolCore(self.core).originate(
         msg.sender,
@@ -179,6 +212,7 @@ def borrow(
         deadline,
         nonce,
         signature,
+        verified_price,
     )
 
     loan: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
@@ -231,8 +265,23 @@ def roll_loan(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
+    price_timestamp: uint256,
+    price_deadline: uint256,
+    price_signature: Bytes[65],
 ) -> uint256:
     self._check()
+
+    old_loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(
+        old_loan_id
+    )
+    verified_price: uint256 = self._verify_price(
+        old_loan_pre.condition_id,
+        price,
+        price_timestamp,
+        price_deadline,
+        price_signature,
+    )
 
     new_loan_id: uint256 = 0
     total_cost: uint256 = 0
@@ -247,6 +296,7 @@ def roll_loan(
         deadline,
         nonce,
         signature,
+        verified_price,
     )
 
     extcall self.usdc.transferFrom(msg.sender, self, total_cost)
@@ -271,49 +321,63 @@ def roll_loan(
     return new_loan_id
 
 
-# Liquidation
+# Liquidation — restricted to guardian/owner (backend)
 
 @external
 # No pause check — liquidations must work even when pool is paused
-def trigger_liquidation(loan_id: uint256):
+def trigger_liquidation(
+    loan_id: uint256,
+    price: uint256,
+    price_timestamp: uint256,
+    price_deadline: uint256,
+    price_signature: Bytes[65],
+):
     assert self.initialized, "not initialized"
+    assert (
+        msg.sender == self.guardian or msg.sender == ownable.owner
+    ), "not authorized"
 
     loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
     assert loan_pre.borrower != empty(address), "loan does not exist"
     assert block.timestamp <= loan_pre.epoch_end, "use claim_expired"
 
-    price: uint256 = 0
-    ts: uint256 = 0
-    price, ts = staticcall IPriceFeed(self.price_feed).get_price(
-        loan_pre.condition_id
+    verified_price: uint256 = self._verify_price(
+        loan_pre.condition_id,
+        price,
+        price_timestamp,
+        price_deadline,
+        price_signature,
     )
-    assert ts > 0 and block.timestamp - ts <= MAX_PRICE_AGE, "stale price"
 
-    hf: uint256 = staticcall IPoolCore(self.core).health_factor(loan_id)
+    hf: uint256 = staticcall IPoolCore(self.core).health_factor(
+        loan_id, verified_price
+    )
     assert hf < PRECISION, "position is healthy"
 
     loan: IPoolCore.Loan = extcall IPoolCore(self.core).mark_liquidated(loan_id)
     extcall IReserve(self.reserve).cover_loss(loan.principal)
 
+    # Transfer collateral directly to caller (backend sells on CLOB)
     extcall IERC1155(self.ctf_token).safeTransferFrom(
-        self, self.liquidator, loan.token_id, loan.collateral_amount, b""
-    )
-    extcall ILiquidator(self.liquidator).seize(
-        loan_id,
-        loan.token_id,
-        loan.collateral_amount,
-        loan.condition_id,
-        loan.principal,
-        loan.epoch_end,
+        self, msg.sender, loan.token_id, loan.collateral_amount, b""
     )
 
-    log LoanLiquidated(loan_id=loan_id)
+    log LoanLiquidated(
+        loan_id=loan_id,
+        collateral_to=msg.sender,
+        token_id=loan.token_id,
+        collateral_amount=loan.collateral_amount,
+        principal=loan.principal,
+    )
 
 
 @external
 # No pause check — expiry claims must work even when pool is paused
 def claim_expired(loan_id: uint256):
     assert self.initialized, "not initialized"
+    assert (
+        msg.sender == self.guardian or msg.sender == ownable.owner
+    ), "not authorized"
 
     loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
     assert loan_pre.borrower != empty(address), "loan does not exist"
@@ -323,18 +387,16 @@ def claim_expired(loan_id: uint256):
     extcall IReserve(self.reserve).cover_loss(loan.principal)
 
     extcall IERC1155(self.ctf_token).safeTransferFrom(
-        self, self.liquidator, loan.token_id, loan.collateral_amount, b""
-    )
-    extcall ILiquidator(self.liquidator).seize(
-        loan_id,
-        loan.token_id,
-        loan.collateral_amount,
-        loan.condition_id,
-        loan.principal,
-        loan.epoch_end,
+        self, msg.sender, loan.token_id, loan.collateral_amount, b""
     )
 
-    log LoanLiquidated(loan_id=loan_id)
+    log LoanLiquidated(
+        loan_id=loan_id,
+        collateral_to=msg.sender,
+        token_id=loan.token_id,
+        collateral_amount=loan.collateral_amount,
+        principal=loan.principal,
+    )
 
 
 # Reserve routing
@@ -371,6 +433,13 @@ def unpause():
 def set_guardian(_guardian: address):
     ownable._check_owner()
     self.guardian = _guardian
+
+
+@external
+def set_oracle_signer(_signer: address):
+    ownable._check_owner()
+    assert _signer != empty(address), "zero address"
+    self.oracle_signer = _signer
 
 
 # ERC1155 receiver

@@ -13,23 +13,7 @@ def deploy_stack(cfg) -> dict:
     pool = boa.load("contracts/LendingPool.vy", cfg.usdc_address, cfg.ctf_address, cfg.deployer)
     print(f"  LendingPool:           {pool.address}")
 
-    price_feed = boa.load(
-        "contracts/PriceFeed.vy",
-        cfg.oracle_signer_address,
-        cfg.deployer,
-        10**14,
-        2 * 10**17,
-        3600,
-    )
-    print(f"  PriceFeed:             {price_feed.address}")
-
-    core = boa.load(
-        "contracts/PoolCore.vy",
-        cfg.usdc_address,
-        pool.address,
-        price_feed.address,
-        cfg.deployer,
-    )
+    core = boa.load("contracts/PoolCore.vy", cfg.usdc_address, pool.address, cfg.deployer)
     print(f"  PoolCore:              {core.address}")
 
     oracle = boa.load("contracts/PremiumOracle.vy", cfg.pricer_address, core.address, cfg.deployer)
@@ -57,22 +41,7 @@ def deploy_stack(cfg) -> dict:
     )
     print(f"  Reserve:               {reserve.address}")
 
-    liquidator = boa.load(
-        "contracts/Liquidator.vy",
-        pool.address,
-        cfg.liquidator_address,
-        cfg.ctf_address,
-        cfg.deployer,
-    )
-    print(f"  Liquidator:            {liquidator.address}")
-
-    pool.initialize(
-        core.address,
-        liquidator.address,
-        reserve.address,
-        price_feed.address,
-        cfg.guardian_address,
-    )
+    pool.initialize(core.address, reserve.address, cfg.oracle_signer_address, cfg.guardian_address)
     print("  LendingPool initialized")
 
     return {
@@ -82,14 +51,11 @@ def deploy_stack(cfg) -> dict:
         "pool": pool.address,
         "core": core.address,
         "oracle": oracle.address,
-        "price_feed": price_feed.address,
         "controller": controller.address,
         "reserve": reserve.address,
-        "liquidator": liquidator.address,
         "admin": cfg.deployer,
         "guardian": cfg.guardian_address,
         "pricer": cfg.pricer_address,
-        "liquidator_operator": cfg.liquidator_address,
         "oracle_signer": cfg.oracle_signer_address,
     }
 
@@ -105,7 +71,6 @@ def main():
 
     print("\nForking...")
     boa.env.fork(cfg.rpc_url)
-
     boa.env.eoa = cfg.deployer
 
     print("Deploying Lattica stack...")

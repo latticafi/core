@@ -14,9 +14,8 @@ class DeployConfig:
     rpc_url: str
     chain_id: int
     pricer_address: str
-    liquidator_address: str
-    guardian_address: str
     oracle_signer_address: str
+    guardian_address: str
     usdc_address: str
     ctf_address: str
 
@@ -38,9 +37,8 @@ def load_config() -> DeployConfig:
         rpc_url=_require("RPC_URL"),
         chain_id=int(_require("CHAIN_ID")),
         pricer_address=_require("PRICER_ADDRESS"),
-        liquidator_address=_require("LIQUIDATOR_ADDRESS"),
-        guardian_address=_require("GUARDIAN_ADDRESS"),
         oracle_signer_address=_require("ORACLE_SIGNER_ADDRESS"),
+        guardian_address=_require("GUARDIAN_ADDRESS"),
         usdc_address=_require("USDC_ADDRESS"),
         ctf_address=_require("CTF_ADDRESS"),
     )

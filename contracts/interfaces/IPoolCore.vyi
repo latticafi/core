@@ -38,6 +38,7 @@ def originate(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
 ) -> uint256:
     ...
 
@@ -56,6 +57,7 @@ def settle_roll(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
 ) -> (uint256, uint256, Loan):
     ...
 
@@ -91,7 +93,7 @@ def pause_market(condition_id: bytes32):
     ...
 
 
-# LendingPool + Views read
+# Views (price passed as param — not verified on-chain for view calls)
 @external
 @view
 def get_loan(loan_id: uint256) -> Loan:
@@ -100,7 +102,7 @@ def get_loan(loan_id: uint256) -> Loan:
 
 @external
 @view
-def health_factor(loan_id: uint256) -> uint256:
+def health_factor(loan_id: uint256, price: uint256) -> uint256:
     ...
 
 
@@ -110,7 +112,6 @@ def get_liquidation_price(loan_id: uint256) -> uint256:
     ...
 
 
-# Views read
 @external
 @view
 def share_price() -> uint256:
@@ -163,7 +164,7 @@ def preview_liquidation_price(
 
 @external
 @view
-def current_ltv(loan_id: uint256) -> uint256:
+def current_ltv(loan_id: uint256, price: uint256) -> uint256:
     ...
 
 

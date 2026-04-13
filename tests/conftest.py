@@ -1,6 +1,5 @@
 """
 Shared fixtures for Lattica protocol tests.
-Uses titanoboa (boa) for Vyper testing.
 """
 
 import boa
@@ -16,6 +15,7 @@ COLLATERAL_AMOUNT = 1_000 * 10**6
 BORROW_AMOUNT = 400 * 10**6
 EPOCH_24H = 24 * 3600
 PREMIUM_BPS = 300
+DEFAULT_PRICE = 6 * 10**17  # 0.60
 
 # Pricer key (quote-engine signer)
 
@@ -23,7 +23,7 @@ PRICER_KEY = "0x" + "de" * 31 + "ad"
 PRICER_ACCOUNT = Account.from_key(PRICER_KEY)
 PRICER_ADDRESS = PRICER_ACCOUNT.address
 
-# Oracle signer key (price feed signer)
+# Oracle signer key (price signer)
 
 ORACLE_KEY = "0x" + "ab" * 31 + "cd"
 ORACLE_ACCOUNT = Account.from_key(ORACLE_KEY)
@@ -66,12 +66,13 @@ def sign_quote(
     return signed.signature
 
 
-def sign_price(feed_address, condition_id, price, timestamp, deadline, chain_id):
+def sign_price(pool_address, condition_id, price, timestamp, deadline, chain_id):
+    """Sign a PriceAttestation. Domain is LendingPool (it verifies inline)."""
     domain_data = {
         "name": "LatticaPriceFeed",
         "version": "1",
         "chainId": chain_id,
-        "verifyingContract": feed_address,
+        "verifyingContract": pool_address,
     }
     message_types = {
         "PriceAttestation": [
@@ -96,12 +97,14 @@ def sign_price(feed_address, condition_id, price, timestamp, deadline, chain_id)
     return signed.signature
 
 
-def submit_signed_price(feed, condition_id, price):
-    """Helper: sign and submit a price to the feed."""
+def make_price_params(pool_address, condition_id, price=None):
+    """Build (price, timestamp, deadline, signature) for inline price."""
+    if price is None:
+        price = DEFAULT_PRICE
     ts = boa.env.evm.patch.timestamp
     deadline = ts + 3600
-    sig = sign_price(feed.address, condition_id, price, ts, deadline, 1)
-    feed.submit_price(condition_id, price, ts, deadline, sig)
+    sig = sign_price(pool_address, condition_id, price, ts, deadline, 1)
+    return price, ts, deadline, sig
 
 
 # Accounts
@@ -127,11 +130,6 @@ def borrower_addr():
     return boa.env.generate_address("borrower")
 
 
-@pytest.fixture
-def liquidator_operator():
-    return boa.env.generate_address("liquidator")
-
-
 # Mocks
 
 
@@ -149,27 +147,10 @@ def ctf_token():
 
 
 @pytest.fixture
-def price_feed(admin):
-    feed = boa.load(
-        "contracts/PriceFeed.vy",
-        ORACLE_SIGNER_ADDRESS,
-        admin,
-        10**14,
-        2 * 10**17,
-        3600,
-    )
-    submit_signed_price(feed, CONDITION_ID, 6 * 10**17)
-    return feed
-
-
-@pytest.fixture
-def deploy_stack(usdc, ctf_token, price_feed, admin, guardian, liquidator_operator):
+def deploy_stack(usdc, ctf_token, admin, guardian):
     pool = boa.load("contracts/LendingPool.vy", usdc.address, ctf_token.address, admin)
-
-    core = boa.load("contracts/PoolCore.vy", usdc.address, pool.address, price_feed.address, admin)
-
+    core = boa.load("contracts/PoolCore.vy", usdc.address, pool.address, admin)
     oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, admin)
-
     controller = boa.load(
         "contracts/PortfolioController.vy", core.address, admin, 10_000_000 * 10**6
     )
@@ -181,14 +162,8 @@ def deploy_stack(usdc, ctf_token, price_feed, admin, guardian, liquidator_operat
         "contracts/Reserve.vy", usdc.address, pool.address, admin, 10_000 * 10**6, 1000, 5000
     )
 
-    liquidator = boa.load(
-        "contracts/Liquidator.vy", pool.address, liquidator_operator, ctf_token.address, admin
-    )
-
     with boa.env.prank(admin):
-        pool.initialize(
-            core.address, liquidator.address, reserve.address, price_feed.address, guardian
-        )
+        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, guardian)
 
     return {
         "pool": pool,
@@ -196,8 +171,6 @@ def deploy_stack(usdc, ctf_token, price_feed, admin, guardian, liquidator_operat
         "oracle": oracle,
         "controller": controller,
         "reserve": reserve,
-        "liquidator": liquidator,
-        "price_feed": price_feed,
     }
 
 
@@ -224,11 +197,6 @@ def controller(deploy_stack):
 @pytest.fixture
 def reserve(deploy_stack):
     return deploy_stack["reserve"]
-
-
-@pytest.fixture
-def liquidator(deploy_stack):
-    return deploy_stack["liquidator"]
 
 
 @pytest.fixture

@@ -4,9 +4,8 @@
 @external
 def initialize(
     core_addr: address,
-    liquidator_addr: address,
     reserve_addr: address,
-    price_feed_addr: address,
+    _oracle_signer: address,
     guardian_addr: address,
 ):
     ...

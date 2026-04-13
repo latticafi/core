@@ -6,7 +6,6 @@
 @license MIT
 @notice All lending state and business logic. Pure computation — never
         touches USDC, ERC1155, or Reserve. Only LendingPool calls this.
-        LendingPool handles all token movements and Reserve interactions.
 """
 
 from ethereum.ercs import IERC20
@@ -17,7 +16,6 @@ initializes: ownable
 initializes: ow[ownable := ownable]
 
 from interfaces import IPremiumOracle as IPremiumOracle
-from interfaces import IPriceFeed as IPriceFeed
 from interfaces import IPortfolioController as IPortfolioController
 
 # Data Structures
@@ -52,14 +50,12 @@ struct Loan:
 PRECISION: constant(uint256) = 10_000
 YEAR: constant(uint256) = 365 * 86400
 DEAD_SHARES: constant(uint256) = 1000
-MAX_PRICE_AGE: constant(uint256) = 3600
 
 # Storage
 
 pool: public(address)
 usdc: public(IERC20)
 oracle: public(address)
-price_feed: public(address)
 portfolio_controller: public(address)
 
 total_shares: public(uint256)
@@ -97,7 +93,6 @@ peripherals_set: bool
 def __init__(
     usdc_addr: address,
     pool_addr: address,
-    price_feed_addr: address,
     admin: address,
 ):
     ownable.__init__()
@@ -105,7 +100,6 @@ def __init__(
     ow._transfer_ownership(admin)
     self.usdc = IERC20(usdc_addr)
     self.pool = pool_addr
-    self.price_feed = price_feed_addr
 
     self.base_rate_bps = 200
     self.slope1_bps = 1000
@@ -170,7 +164,7 @@ def withdraw_shares(lender: address, shares: uint256) -> uint256:
 
 
 # Origination — validates, creates loan, updates portfolio controller.
-#               Does NOT move any tokens. Returns loan_id.
+#               Price is trusted (already verified by LendingPool via PriceFeed).
 
 @external
 def originate(
@@ -183,6 +177,7 @@ def originate(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
 ) -> uint256:
     self._only_pool()
 
@@ -211,14 +206,6 @@ def originate(
     ).check_capacity(condition_id, borrow_amount, epoch_end)
     assert has_capacity, "capacity exceeded"
 
-    price: uint256 = 0
-    updated_at: uint256 = 0
-    price, updated_at = staticcall IPriceFeed(self.price_feed).get_price(
-        condition_id
-    )
-    assert (
-        updated_at > 0 and block.timestamp - updated_at <= MAX_PRICE_AGE
-    ), "stale price"
     collateral_value: uint256 = (collateral_amount * price) // 10**18
     assert collateral_value > 0, "zero collateral value"
 
@@ -298,6 +285,7 @@ def settle_roll(
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
+    price: uint256,
 ) -> (uint256, uint256, Loan):
     """
     @return (new_loan_id, total_cost, old_loan)
@@ -339,10 +327,6 @@ def settle_roll(
     ).check_capacity(condition_id, borrow_amount, epoch_end)
     assert has_capacity, "capacity exceeded"
 
-    price: uint256 = 0
-    ts: uint256 = 0
-    price, ts = staticcall IPriceFeed(self.price_feed).get_price(condition_id)
-    assert ts > 0 and block.timestamp - ts <= MAX_PRICE_AGE, "stale price"
     collateral_value: uint256 = (collateral_amount * price) // 10**18
     assert collateral_value > 0, "zero collateral value"
     ltv_bps: uint256 = (borrow_amount * PRECISION) // collateral_value
@@ -442,8 +426,8 @@ def pause_market(condition_id: bytes32):
 
 @external
 @view
-def health_factor(loan_id: uint256) -> uint256:
-    return self._health_factor(loan_id)
+def health_factor(loan_id: uint256, price: uint256) -> uint256:
+    return self._health_factor(loan_id, price)
 
 
 @external
@@ -506,15 +490,10 @@ def get_liquidation_price(loan_id: uint256) -> uint256:
 
 @external
 @view
-def current_ltv(loan_id: uint256) -> uint256:
+def current_ltv(loan_id: uint256, price: uint256) -> uint256:
     loan: Loan = self.loans[loan_id]
     if loan.repaid or loan.liquidated:
         return 0
-    price: uint256 = 0
-    ts: uint256 = 0
-    price, ts = staticcall IPriceFeed(self.price_feed).get_price(
-        loan.condition_id
-    )
     collateral_value: uint256 = (loan.collateral_amount * price) // 10**18
     if collateral_value == 0:
         return PRECISION
@@ -559,17 +538,12 @@ def _current_rate() -> uint256:
 
 @internal
 @view
-def _health_factor(loan_id: uint256) -> uint256:
+def _health_factor(loan_id: uint256, price: uint256) -> uint256:
     loan: Loan = self.loans[loan_id]
     if loan.repaid or loan.liquidated:
         return max_value(uint256)
     if loan.liquidation_price == 0:
         return max_value(uint256)
-    price: uint256 = 0
-    ts: uint256 = 0
-    price, ts = staticcall IPriceFeed(self.price_feed).get_price(
-        loan.condition_id
-    )
     return (price * PRECISION) // loan.liquidation_price
 
 
