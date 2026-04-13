@@ -120,9 +120,17 @@ class TestForkDeposit:
     def test_withdraw_real_usdc(self, stack, usdc, lender):
         pool = stack["pool"]
         core = stack["core"]
+
+        # Deposit first (state resets between tests)
+        with boa.env.prank(lender):
+            usdc.approve(pool.address, 2**256 - 1)
+            pool.deposit(10_000 * 10**6)
+
         shares = core.share_balance(lender)
         bal_before = usdc.balanceOf(lender)
+
         with boa.env.prank(lender):
             pool.withdraw(shares)
+
         assert usdc.balanceOf(lender) > bal_before
         assert core.share_balance(lender) == 0
