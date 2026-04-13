@@ -1,4 +1,4 @@
-name: CI
+name: ci
 
 on:
   pull_request:
@@ -15,11 +15,11 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v4
       - run: uv sync --group lint
       - name: Check formatting with mamushi
         run: uv run mamushi --check .
@@ -30,11 +30,11 @@ jobs:
     name: Unit Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v4
       - run: uv sync --group test
       - run: uv run pytest --ignore=tests/test_fork.py -v
 
@@ -43,13 +43,34 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, unit]
+    permissions:
+      contents: read
+      id-token: write
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@v4
       - run: uv sync --group test
+
+      - uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: core-staging
+          jwtGithubAudience: https://github.com/latticafi
+          exportToken: true
+          secrets: |
+            secret/data/staging/core RPC_URL
+
       - run: uv run pytest tests/test_fork.py -v
         env:
-          RPC_URL: ${{ secrets.RPC_URL }}
+          RPC_URL: ${{ env.RPC_URL }}
+
+      - name: revoke token
+        if: always()
+        run: |
+          curl -sS -X POST \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/token/revoke-self" || true
