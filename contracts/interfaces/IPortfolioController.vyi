@@ -1,0 +1,48 @@
+# pragma version ~=0.4.0
+
+# PoolCore calls
+@external
+@view
+def check_capacity(
+    condition_id: bytes32, amount: uint256, epoch_end: uint256
+) -> bool:
+    ...
+
+
+@external
+def record_origination(
+    condition_id: bytes32, amount: uint256, epoch_end: uint256
+):
+    ...
+
+
+@external
+def record_settlement(
+    condition_id: bytes32, amount: uint256, loss: uint256, epoch_end: uint256
+):
+    ...
+
+
+# Views reads
+@external
+@view
+def condition_exposure(condition_id: bytes32) -> uint256:
+    ...
+
+
+@external
+@view
+def is_circuit_broken() -> bool:
+    ...
+
+
+@external
+@view
+def total_exposure() -> uint256:
+    ...
+
+
+@external
+@view
+def max_total_exposure() -> uint256:
+    ...

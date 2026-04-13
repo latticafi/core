@@ -1,57 +1,76 @@
-name: CI
+name: ci
 
 on:
   pull_request:
     branches: [main]
+  push:
+    branches: [main]
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number }}
+  group: ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   lint:
     name: Lint
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-
-      - name: Install dependencies
-        run: uv sync --group lint
-
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group lint
       - name: Check formatting with mamushi
         run: uv run mamushi --check .
-
       - name: Lint with ruff
         run: uv run ruff check .
 
-  test:
-    name: Test
+  unit:
+    name: Unit Tests
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group test
+      - run: uv run pytest --ignore=tests/test_fork.py -v
 
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
+  fork:
+    name: Fork Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, unit]
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@v4
+      - run: uv sync --group test
 
-      - name: Install dependencies
-        run: uv sync --group test
+      - uses: hashicorp/vault-action@v3
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: core-staging
+          jwtGithubAudience: https://github.com/latticafi
+          exportToken: true
+          secrets: |
+            secret/data/staging/core RPC_URL
 
-      - name: Run test suite
-        run: uv run pytest
+      - run: uv run pytest tests/test_fork.py -v
+        env:
+          RPC_URL: ${{ env.RPC_URL }}
+
+      - name: revoke token
+        if: always()
+        run: |
+          curl -sS -X POST \
+            -H "X-Vault-Token: ${VAULT_TOKEN}" \
+            "${{ secrets.VAULT_ADDR }}/v1/auth/token/revoke-self" || true
