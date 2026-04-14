@@ -31,7 +31,16 @@ ORACLE_SIGNER_ADDRESS = ORACLE_ACCOUNT.address
 
 
 def sign_quote(
-    oracle_address, borrower, condition_id, premium_bps, amount, deadline, nonce, chain_id
+    oracle_address,
+    borrower,
+    condition_id,
+    premium_bps,
+    amount,
+    collateral_amount,
+    epoch_length,
+    deadline,
+    nonce,
+    chain_id,
 ):
     domain_data = {
         "name": "LatticaPremiumOracle",
@@ -45,6 +54,8 @@ def sign_quote(
             {"name": "conditionId", "type": "bytes32"},
             {"name": "premiumBps", "type": "uint256"},
             {"name": "amount", "type": "uint256"},
+            {"name": "collateralAmount", "type": "uint256"},
+            {"name": "epochLength", "type": "uint256"},
             {"name": "deadline", "type": "uint256"},
             {"name": "nonce", "type": "uint256"},
         ],
@@ -54,6 +65,8 @@ def sign_quote(
         "conditionId": condition_id,
         "premiumBps": premium_bps,
         "amount": amount,
+        "collateralAmount": collateral_amount,
+        "epochLength": epoch_length,
         "deadline": deadline,
         "nonce": nonce,
     }
