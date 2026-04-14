@@ -7,6 +7,8 @@ def verify_quote(
     condition_id: bytes32,
     premium_bps: uint256,
     amount: uint256,
+    collateral_amount: uint256,
+    epoch_length: uint256,
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],

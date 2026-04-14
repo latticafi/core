@@ -13,6 +13,10 @@ PRICER_KEY = "0x" + "de" * 31 + "ad"
 PRICER_ACCOUNT = Account.from_key(PRICER_KEY)
 PRICER_ADDRESS = PRICER_ACCOUNT.address
 
+AMOUNT = 500 * 10**6
+COLLATERAL = 1000 * 10**6
+EPOCH = 24 * 3600
+
 
 @pytest.fixture
 def admin():
@@ -37,50 +41,72 @@ def borrower():
 class TestVerifyQuote:
     def test_valid_quote(self, oracle, pool, borrower):
         deadline = boa.env.evm.patch.timestamp + 3600
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
         with boa.env.prank(pool):
-            result = oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+            result = oracle.verify_quote(
+                borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+            )
         assert result
 
     def test_increments_nonce(self, oracle, pool, borrower):
         assert oracle.get_nonce(borrower) == 0
         deadline = boa.env.evm.patch.timestamp + 3600
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
         with boa.env.prank(pool):
-            oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+            oracle.verify_quote(
+                borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+            )
         assert oracle.get_nonce(borrower) == 1
 
     def test_expired_quote_reverts(self, oracle, pool, borrower):
-        deadline = boa.env.evm.patch.timestamp - 1  # already expired
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        deadline = boa.env.evm.patch.timestamp - 1
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
         with boa.env.prank(pool):
             with boa.reverts("quote expired"):
-                oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+                oracle.verify_quote(
+                    borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+                )
 
     def test_wrong_nonce_reverts(self, oracle, pool, borrower):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
-            oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 1, 1
-        )  # nonce=1 but expected 0
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 1, 1
+        )
         with boa.env.prank(pool):
             with boa.reverts("invalid nonce"):
-                oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 1, sig)
+                oracle.verify_quote(
+                    borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 1, sig
+                )
 
     def test_non_pool_caller_reverts(self, oracle, borrower):
         deadline = boa.env.evm.patch.timestamp + 3600
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
         with boa.env.prank(borrower):
             with boa.reverts("not pool"):
-                oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+                oracle.verify_quote(
+                    borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+                )
 
     def test_paused_reverts(self, oracle, pool, borrower, admin):
         with boa.env.prank(admin):
             oracle.set_paused(True)
         deadline = boa.env.evm.patch.timestamp + 3600
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
         with boa.env.prank(pool):
             with boa.reverts("paused"):
-                oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+                oracle.verify_quote(
+                    borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+                )
 
 
 class TestPricerRotation:
@@ -92,7 +118,9 @@ class TestPricerRotation:
 
     def test_old_signature_fails_after_rotation(self, oracle, pool, borrower, admin):
         deadline = boa.env.evm.patch.timestamp + 3600
-        sig = sign_quote(oracle.address, borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, 1)
+        sig = sign_quote(
+            oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
+        )
 
         new_pricer = boa.env.generate_address("new_pricer")
         with boa.env.prank(admin):
@@ -100,7 +128,9 @@ class TestPricerRotation:
 
         with boa.env.prank(pool):
             with boa.reverts("wrong signer"):
-                oracle.verify_quote(borrower, CONDITION_ID, 300, 500 * 10**6, deadline, 0, sig)
+                oracle.verify_quote(
+                    borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
+                )
 
     def test_zero_address_pricer_reverts(self, oracle, admin):
         with boa.env.prank(admin):

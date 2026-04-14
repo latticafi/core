@@ -19,7 +19,7 @@ initializes: eip712
 # EIP-712 Struct Typehash
 
 QUOTE_TYPEHASH: constant(bytes32) = keccak256(
-    "PremiumQuote(address borrower,bytes32 conditionId,uint256 premiumBps,uint256 amount,uint256 deadline,uint256 nonce)"
+    "PremiumQuote(address borrower,bytes32 conditionId,uint256 premiumBps,uint256 amount,uint256 collateralAmount,uint256 epochLength,uint256 deadline,uint256 nonce)"
 )
 
 # Storage
@@ -63,6 +63,8 @@ def verify_quote(
     condition_id: bytes32,
     premium_bps: uint256,
     amount: uint256,
+    collateral_amount: uint256,
+    epoch_length: uint256,
     deadline: uint256,
     nonce: uint256,
     signature: Bytes[65],
@@ -79,15 +81,14 @@ def verify_quote(
             condition_id,
             premium_bps,
             amount,
+            collateral_amount,
+            epoch_length,
             deadline,
             nonce,
         )
     )
 
-    # snekmate eip712: combines domain separator + struct hash + \x19\x01 prefix
     digest: bytes32 = eip712._hash_typed_data_v4(struct_hash)
-
-    # snekmate ecdsa: recovers with malleability protection built in
     recovered: address = ecdsa._recover_sig(digest, signature)
     assert recovered != empty(address), "invalid signature"
     assert recovered == self.pricer, "wrong signer"
