@@ -37,14 +37,14 @@ event LossCovered:
 def __init__(
     usdc_addr: address,
     pool_addr: address,
-    admin: address,
+    owner: address,
     _target: uint256,
     _base_retention: uint256,
     _max_retention: uint256,
 ):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     self.usdc = IERC20(usdc_addr)
     self.pool = pool_addr
     self.reserve_target = _target
@@ -110,7 +110,7 @@ def is_healthy() -> bool:
     return staticcall self.usdc.balanceOf(self) >= self.reserve_target
 
 
-# Admin
+# Owner
 
 @external
 def set_reserve_target(target: uint256):

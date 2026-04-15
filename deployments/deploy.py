@@ -66,7 +66,7 @@ def deploy_stack(cfg) -> dict:
         "oracle": oracle.address,
         "controller": controller.address,
         "reserve": reserve.address,
-        "admin": cfg.deployer,
+        "owner": cfg.deployer,
         "operator": cfg.operator_address,
         "pricer": cfg.pricer_address,
         "oracle_signer": cfg.oracle_signer_address,

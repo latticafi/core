@@ -19,8 +19,8 @@ EPOCH = 24 * 3600
 
 
 @pytest.fixture
-def admin():
-    return boa.env.generate_address("admin")
+def owner():
+    return boa.env.generate_address("owner")
 
 
 @pytest.fixture
@@ -29,8 +29,8 @@ def pool():
 
 
 @pytest.fixture
-def oracle(pool, admin):
-    return boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, pool, admin)
+def oracle(pool, owner):
+    return boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, pool, owner)
 
 
 @pytest.fixture
@@ -95,8 +95,8 @@ class TestVerifyQuote:
                     borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
                 )
 
-    def test_paused_reverts(self, oracle, pool, borrower, admin):
-        with boa.env.prank(admin):
+    def test_paused_reverts(self, oracle, pool, borrower, owner):
+        with boa.env.prank(owner):
             oracle.set_paused(True)
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
@@ -110,20 +110,20 @@ class TestVerifyQuote:
 
 
 class TestPricerRotation:
-    def test_rotate_pricer(self, oracle, admin):
+    def test_rotate_pricer(self, oracle, owner):
         new_pricer = boa.env.generate_address("new_pricer")
-        with boa.env.prank(admin):
+        with boa.env.prank(owner):
             oracle.set_pricer(new_pricer)
         assert oracle.pricer() == new_pricer
 
-    def test_old_signature_fails_after_rotation(self, oracle, pool, borrower, admin):
+    def test_old_signature_fails_after_rotation(self, oracle, pool, borrower, owner):
         deadline = boa.env.evm.patch.timestamp + 3600
         sig = sign_quote(
             oracle.address, borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, 1
         )
 
         new_pricer = boa.env.generate_address("new_pricer")
-        with boa.env.prank(admin):
+        with boa.env.prank(owner):
             oracle.set_pricer(new_pricer)
 
         with boa.env.prank(pool):
@@ -132,7 +132,7 @@ class TestPricerRotation:
                     borrower, CONDITION_ID, 300, AMOUNT, COLLATERAL, EPOCH, deadline, 0, sig
                 )
 
-    def test_zero_address_pricer_reverts(self, oracle, admin):
-        with boa.env.prank(admin):
+    def test_zero_address_pricer_reverts(self, oracle, owner):
+        with boa.env.prank(owner):
             with boa.reverts("zero address"):
                 oracle.set_pricer("0x" + "00" * 20)

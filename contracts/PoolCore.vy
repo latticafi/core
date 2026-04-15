@@ -93,11 +93,11 @@ peripherals_set: bool
 def __init__(
     usdc_addr: address,
     pool_addr: address,
-    admin: address,
+    owner: address,
 ):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     self.usdc = IERC20(usdc_addr)
     self.pool = pool_addr
 
@@ -567,7 +567,7 @@ def _is_eligible(condition_id: bytes32) -> bool:
     return True
 
 
-# Admin
+# Owner
 
 @external
 def set_rate_params(base: uint256, s1: uint256, s2: uint256, kink: uint256):

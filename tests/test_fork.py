@@ -62,8 +62,8 @@ def usdc():
 
 
 @pytest.fixture(scope="module")
-def admin():
-    return boa.env.generate_address("admin")
+def owner():
+    return boa.env.generate_address("owner")
 
 
 @pytest.fixture(scope="module")
@@ -76,23 +76,23 @@ def lender(usdc):
 
 
 @pytest.fixture(scope="module")
-def stack(admin):
+def stack(owner):
     operator = boa.env.generate_address("operator")
 
-    pool = boa.load("contracts/LendingPool.vy", USDC_E, CTF, admin)
-    core = boa.load("contracts/PoolCore.vy", USDC_E, pool.address, admin)
-    oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, admin)
+    pool = boa.load("contracts/LendingPool.vy", USDC_E, CTF, owner)
+    core = boa.load("contracts/PoolCore.vy", USDC_E, pool.address, owner)
+    oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, owner)
     controller = boa.load(
-        "contracts/PortfolioController.vy", core.address, admin, 10_000_000 * 10**6
+        "contracts/PortfolioController.vy", core.address, owner, 10_000_000 * 10**6
     )
-    with boa.env.prank(admin):
+    with boa.env.prank(owner):
         core.set_peripherals(oracle.address, controller.address)
 
     reserve = boa.load(
-        "contracts/Reserve.vy", USDC_E, pool.address, admin, 100_000 * 10**6, 1000, 3000
+        "contracts/Reserve.vy", USDC_E, pool.address, owner, 100_000 * 10**6, 1000, 3000
     )
 
-    with boa.env.prank(admin):
+    with boa.env.prank(owner):
         pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, operator)
 
     return {"pool": pool, "core": core}

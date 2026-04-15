@@ -95,10 +95,10 @@ event LoanLiquidated:
 # Constructor + Init
 
 @deploy
-def __init__(usdc_addr: address, ctf_token_addr: address, admin: address):
+def __init__(usdc_addr: address, ctf_token_addr: address, owner: address):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     ps.__init__()
     eip712.__init__("LatticaPriceFeed", "1")
     self.usdc = IERC20(usdc_addr)
@@ -413,7 +413,7 @@ def _route_to_reserve(premium: uint256) -> uint256:
     return retention
 
 
-# Admin
+# Owner
 
 @external
 def pause():

@@ -63,9 +63,9 @@ class TestDeposit:
             with boa.reverts("zero amount"):
                 pool.deposit(0)
 
-    def test_deposit_when_paused_reverts(self, pool, usdc, lender, admin):
+    def test_deposit_when_paused_reverts(self, pool, usdc, lender, owner):
         usdc.mint(lender, 1_000 * 10**6)
-        with boa.env.prank(admin):
+        with boa.env.prank(owner):
             pool.pause()
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
@@ -281,15 +281,15 @@ class TestPause:
             pool.pause()
         assert pool.paused()
 
-    def test_operator_cannot_unpause(self, pool, operator, admin):
-        with boa.env.prank(admin):
+    def test_operator_cannot_unpause(self, pool, operator, owner):
+        with boa.env.prank(owner):
             pool.pause()
         with boa.env.prank(operator):
             with boa.reverts("ownable: caller is not the owner"):
                 pool.unpause()
 
-    def test_owner_can_unpause(self, pool, admin):
-        with boa.env.prank(admin):
+    def test_owner_can_unpause(self, pool, owner):
+        with boa.env.prank(owner):
             pool.pause()
             pool.unpause()
         assert not pool.paused()

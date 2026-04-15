@@ -13,8 +13,8 @@ from interfaces import IPoolCore as IPoolCore
 
 # Storage — Ownership
 
-admin: public(address)
-future_admin: public(address)
+owner: public(address)
+future_owner: public(address)
 
 # Blueprint addresses
 pool_blueprint: public(address)
@@ -54,18 +54,18 @@ event PoolStackDeployed:
 
 
 event TransferOwnershipCommitted:
-    future_admin: indexed(address)
+    future_owner: indexed(address)
 
 
 event TransferOwnershipAccepted:
-    admin: indexed(address)
+    owner: indexed(address)
 
 
 # Constructor
 
 @deploy
-def __init__(_admin: address, _usdc: address, _ctf_token: address):
-    self.admin = _admin
+def __init__(_owner: address, _usdc: address, _ctf_token: address):
+    self.owner = _owner
     self.usdc = _usdc
     self.ctf_token = _ctf_token
 
@@ -83,7 +83,7 @@ def deploy_pool(
     _oracle_signer: address,
     _operator: address,
 ):
-    assert msg.sender == self.admin, "not admin"
+    assert msg.sender == self.owner, "not owner"
     assert not self.deployed, "already deployed"
     assert self.pool_blueprint != empty(address), "set blueprints first"
     assert self.core_blueprint != empty(address), "set blueprints first"
@@ -96,7 +96,7 @@ def deploy_pool(
         self.pool_blueprint,
         self.usdc,
         self.ctf_token,
-        self.admin,
+        self.owner,
         code_offset=3,
     )
 
@@ -105,7 +105,7 @@ def deploy_pool(
         self.core_blueprint,
         self.usdc,
         _pool,
-        self.admin,
+        self.owner,
         code_offset=3,
     )
 
@@ -114,7 +114,7 @@ def deploy_pool(
         self.oracle_blueprint,
         _pricer,
         _core,
-        self.admin,
+        self.owner,
         code_offset=3,
     )
 
@@ -122,7 +122,7 @@ def deploy_pool(
     _controller: address = create_from_blueprint(
         self.controller_blueprint,
         _core,
-        self.admin,
+        self.owner,
         self.default_max_total_exposure,
         code_offset=3,
     )
@@ -135,7 +135,7 @@ def deploy_pool(
         self.reserve_blueprint,
         self.usdc,
         _pool,
-        self.admin,
+        self.owner,
         self.default_reserve_target,
         self.default_base_retention_bps,
         self.default_max_retention_bps,
@@ -174,7 +174,7 @@ def set_blueprints(
     _controller: address,
     _reserve: address,
 ):
-    assert msg.sender == self.admin, "not admin"
+    assert msg.sender == self.owner, "not owner"
     assert not self.deployed, "already deployed"
     self.pool_blueprint = _pool
     self.core_blueprint = _core
@@ -185,22 +185,22 @@ def set_blueprints(
 
 @external
 def set_views(_views: address):
-    assert msg.sender == self.admin, "not admin"
+    assert msg.sender == self.owner, "not owner"
     self.views = _views
 
 
 # Ownership
 
 @external
-def commit_transfer_ownership(_future_admin: address):
-    assert msg.sender == self.admin, "not admin"
-    self.future_admin = _future_admin
-    log TransferOwnershipCommitted(future_admin=_future_admin)
+def commit_transfer_ownership(_future_owner: address):
+    assert msg.sender == self.owner, "not owner"
+    self.future_owner = _future_owner
+    log TransferOwnershipCommitted(future_owner=_future_owner)
 
 
 @external
 def accept_transfer_ownership():
-    assert msg.sender == self.future_admin, "not future admin"
-    self.admin = self.future_admin
-    self.future_admin = empty(address)
-    log TransferOwnershipAccepted(admin=self.admin)
+    assert msg.sender == self.future_owner, "not future owner"
+    self.owner = self.future_owner
+    self.future_owner = empty(address)
+    log TransferOwnershipAccepted(owner=self.owner)
