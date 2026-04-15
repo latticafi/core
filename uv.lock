@@ -729,6 +729,10 @@ dependencies = [
 ]
 
 [package.dev-dependencies]
+deploy = [
+    { name = "eth-account" },
+    { name = "requests" },
+]
 dev = [
     { name = "mamushi" },
     { name = "pytest" },
@@ -754,6 +758,10 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
+deploy = [
+    { name = "eth-account" },
+    { name = "requests" },
+]
 dev = [
     { name = "mamushi" },
     { name = "pytest" },
