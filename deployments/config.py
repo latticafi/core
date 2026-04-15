@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 from eth_account import Account
 
+CTF = "0x4D97DCd97eC945f40cF65F87097ACe5EA0476045"
+
 
 @dataclass
 class DeployConfig:
@@ -16,8 +18,7 @@ class DeployConfig:
     pricer_address: str
     oracle_signer_address: str
     operator_address: str
-    usdc_address: str
-    ctf_address: str
+    usdc_address: str | None = None
 
     @property
     def deployer(self) -> str:
@@ -31,14 +32,15 @@ def _require(key: str) -> str:
     return val
 
 
-def load_config() -> DeployConfig:
-    return DeployConfig(
+def load_config(mock_usdc: bool = False) -> DeployConfig:
+    cfg = DeployConfig(
         deployer_private_key=_require("DEPLOYER_PRIVATE_KEY"),
         rpc_url=_require("RPC_URL"),
         chain_id=int(_require("CHAIN_ID")),
         pricer_address=_require("PRICER_ADDRESS"),
         oracle_signer_address=_require("ORACLE_SIGNER_ADDRESS"),
         operator_address=_require("OPERATOR_ADDRESS"),
-        usdc_address=_require("USDC_ADDRESS"),
-        ctf_address=_require("CTF_ADDRESS"),
     )
+    if not mock_usdc:
+        cfg.usdc_address = _require("USDC_ADDRESS")
+    return cfg
