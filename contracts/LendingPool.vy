@@ -419,7 +419,7 @@ def _route_to_reserve(premium: uint256) -> uint256:
 def pause():
     assert (
         msg.sender == self.operator or msg.sender == ownable.owner
-    ), "not operator"
+    ), "not authorized"
     ps._pause()
 
 
