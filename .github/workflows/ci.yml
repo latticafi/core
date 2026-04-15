@@ -38,8 +38,8 @@ jobs:
       - run: uv sync --group test
       - run: uv run pytest --ignore=tests/test_fork.py -v
 
-  fork:
-    name: Fork Tests
+  integration:
+    name: Integration Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [lint, unit]
@@ -52,7 +52,7 @@ jobs:
         with:
           python-version: "3.12"
       - uses: astral-sh/setup-uv@v7
-      - run: uv sync --group test
+      - run: uv sync --group deploy
 
       - uses: hashicorp/vault-action@v3
         with:
@@ -62,9 +62,25 @@ jobs:
           jwtGithubAudience: https://github.com/latticafi
           exportToken: true
           secrets: |
-            secret/data/staging/core RPC_URL
+            secret/data/staging/core RPC_URL ;
+            secret/data/staging/core CHAIN_ID ;
+            secret/data/staging/core DEPLOYER_PRIVATE_KEY ;
+            secret/data/staging/core PRICER_ADDRESS ;
+            secret/data/staging/core ORACLE_SIGNER_ADDRESS ;
+            secret/data/staging/core OPERATOR_ADDRESS ;
 
-      - run: uv run pytest tests/test_fork.py -v
+      - name: Fork deploy
+        run: uv run python deployments/deploy.py --dry-run --mock-usdc
+        env:
+          RPC_URL: ${{ env.RPC_URL }}
+          CHAIN_ID: ${{ env.CHAIN_ID }}
+          DEPLOYER_PRIVATE_KEY: ${{ env.DEPLOYER_PRIVATE_KEY }}
+          PRICER_ADDRESS: ${{ env.PRICER_ADDRESS }}
+          ORACLE_SIGNER_ADDRESS: ${{ env.ORACLE_SIGNER_ADDRESS }}
+          OPERATOR_ADDRESS: ${{ env.OPERATOR_ADDRESS }}
+
+      - name: Fork tests
+        run: uv run pytest tests/test_fork.py -v
         env:
           RPC_URL: ${{ env.RPC_URL }}
 

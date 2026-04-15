@@ -1,15 +1,5 @@
 """
 Deploy Lattica protocol stack.
-
-Local fork test:
-    vlt run -e staging -- python deployments/deploy.py --dry-run
-
-Broadcast to Polygon:
-    vlt run -e staging -- python deployments/deploy.py
-
-CI (called by workflow):
-    python deployments/deploy.py
-    (secrets injected by vault-action, VAULT_TOKEN available for address push)
 """
 
 import json
@@ -18,15 +8,21 @@ import sys
 
 import boa
 import requests
-from config import load_config
+from config import CTF, load_config
 from eth_account import Account
 
 
-def deploy_stack(cfg) -> dict:
-    pool = boa.load("contracts/LendingPool.vy", cfg.usdc_address, cfg.ctf_address, cfg.deployer)
+def deploy_mock_usdc() -> str:
+    usdc = boa.load("tests/mocks/MockUSDC.vy")
+    print(f"  MockUSDC:              {usdc.address}")
+    return usdc.address
+
+
+def deploy_stack(cfg, usdc_address: str) -> dict:
+    pool = boa.load("contracts/LendingPool.vy", usdc_address, CTF, cfg.deployer)
     print(f"  LendingPool:           {pool.address}")
 
-    core = boa.load("contracts/PoolCore.vy", cfg.usdc_address, pool.address, cfg.deployer)
+    core = boa.load("contracts/PoolCore.vy", usdc_address, pool.address, cfg.deployer)
     print(f"  PoolCore:              {core.address}")
 
     oracle = boa.load("contracts/PremiumOracle.vy", cfg.pricer_address, core.address, cfg.deployer)
@@ -45,7 +41,7 @@ def deploy_stack(cfg) -> dict:
 
     reserve = boa.load(
         "contracts/Reserve.vy",
-        cfg.usdc_address,
+        usdc_address,
         pool.address,
         cfg.deployer,
         100_000 * 10**6,
@@ -59,8 +55,8 @@ def deploy_stack(cfg) -> dict:
 
     return {
         "chain_id": cfg.chain_id,
-        "usdc": cfg.usdc_address,
-        "ctf": cfg.ctf_address,
+        "usdc": usdc_address,
+        "ctf": CTF,
         "pool": pool.address,
         "core": core.address,
         "oracle": oracle.address,
@@ -74,7 +70,6 @@ def deploy_stack(cfg) -> dict:
 
 
 def push_addresses_to_vault(addresses: dict, env: str):
-    """Write deployed addresses to shared vault path for other services."""
     vault_addr = os.environ.get("VAULT_ADDR")
     vault_token = os.environ.get("VAULT_TOKEN")
     if not vault_addr or not vault_token:
@@ -94,37 +89,36 @@ def push_addresses_to_vault(addresses: dict, env: str):
 
 def main():
     dry_run = "--dry-run" in sys.argv
+    mock_usdc = "--mock-usdc" in sys.argv
     env = os.environ.get("DEPLOY_ENV", "staging")
 
-    cfg = load_config()
-    print(f"chain:     {cfg.chain_id}")
-    print(f"deployer:  {cfg.deployer}")
-    print(f"usdc:      {cfg.usdc_address}")
-    print(f"ctf:       {cfg.ctf_address}")
-    print(f"env:       {env}")
+    cfg = load_config(mock_usdc=mock_usdc)
 
     if dry_run:
-        print("\n[DRY RUN] Forking locally, no transactions broadcast...")
+        print("[DRY RUN] Forking locally...")
         boa.fork(cfg.rpc_url, block_identifier="latest")
     else:
-        print("\n[BROADCAST] Deploying to chain...")
+        print("[BROADCAST] Deploying to chain...")
         acct = Account.from_key(cfg.deployer_private_key)
         boa.set_network_env(cfg.rpc_url)
         boa.env.add_account(acct, force_eoa=True)
 
-    print("Deploying Lattica stack...")
-    addresses = deploy_stack(cfg)
+    if mock_usdc:
+        usdc_address = deploy_mock_usdc()
+    else:
+        assert cfg.usdc_address is not None
+        usdc_address = cfg.usdc_address
+
+    print(f"\nDeploying (chain={cfg.chain_id}, usdc={usdc_address}, ctf={CTF})...")
+    addresses = deploy_stack(cfg, usdc_address)
 
     outfile = f"deployments/addresses-{cfg.chain_id}.json"
     with open(outfile, "w") as f:
         json.dump(addresses, f, indent=2)
-    print(f"\nAddresses saved to {outfile}")
+    print(f"Addresses saved to {outfile}")
 
     if not dry_run:
         push_addresses_to_vault(addresses, env)
-
-    if dry_run:
-        print("[DRY RUN] No transactions broadcast.")
 
 
 if __name__ == "__main__":
