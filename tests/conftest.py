@@ -129,8 +129,8 @@ def admin():
 
 
 @pytest.fixture
-def guardian():
-    return boa.env.generate_address("guardian")
+def operator():
+    return boa.env.generate_address("operator")
 
 
 @pytest.fixture
@@ -160,7 +160,7 @@ def ctf_token():
 
 
 @pytest.fixture
-def deploy_stack(usdc, ctf_token, admin, guardian):
+def deploy_stack(usdc, ctf_token, admin, operator):
     pool = boa.load("contracts/LendingPool.vy", usdc.address, ctf_token.address, admin)
     core = boa.load("contracts/PoolCore.vy", usdc.address, pool.address, admin)
     oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, admin)
@@ -176,7 +176,7 @@ def deploy_stack(usdc, ctf_token, admin, guardian):
     )
 
     with boa.env.prank(admin):
-        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, guardian)
+        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, operator)
 
     return {
         "pool": pool,

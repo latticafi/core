@@ -15,7 +15,7 @@ class DeployConfig:
     chain_id: int
     pricer_address: str
     oracle_signer_address: str
-    guardian_address: str
+    operator_address: str
     usdc_address: str
     ctf_address: str
 
@@ -38,7 +38,7 @@ def load_config() -> DeployConfig:
         chain_id=int(_require("CHAIN_ID")),
         pricer_address=_require("PRICER_ADDRESS"),
         oracle_signer_address=_require("ORACLE_SIGNER_ADDRESS"),
-        guardian_address=_require("GUARDIAN_ADDRESS"),
+        operator_address=_require("OPERATOR_ADDRESS"),
         usdc_address=_require("USDC_ADDRESS"),
         ctf_address=_require("CTF_ADDRESS"),
     )

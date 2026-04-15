@@ -77,7 +77,7 @@ def lender(usdc):
 
 @pytest.fixture(scope="module")
 def stack(admin):
-    guardian = boa.env.generate_address("guardian")
+    operator = boa.env.generate_address("operator")
 
     pool = boa.load("contracts/LendingPool.vy", USDC_E, CTF, admin)
     core = boa.load("contracts/PoolCore.vy", USDC_E, pool.address, admin)
@@ -93,7 +93,7 @@ def stack(admin):
     )
 
     with boa.env.prank(admin):
-        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, guardian)
+        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, operator)
 
     return {"pool": pool, "core": core}
 

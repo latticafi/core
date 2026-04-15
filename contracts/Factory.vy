@@ -81,7 +81,7 @@ def __init__(_admin: address, _usdc: address, _ctf_token: address):
 def deploy_pool(
     _pricer: address,
     _oracle_signer: address,
-    _guardian: address,
+    _operator: address,
 ):
     assert msg.sender == self.admin, "not admin"
     assert not self.deployed, "already deployed"
@@ -144,7 +144,7 @@ def deploy_pool(
 
     # 7. Wire LendingPool
     extcall ILendingPool(_pool).initialize(
-        _core, _reserve, _oracle_signer, _guardian
+        _core, _reserve, _oracle_signer, _operator
     )
 
     # Store
