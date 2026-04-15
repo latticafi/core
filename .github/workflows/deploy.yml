@@ -37,9 +37,7 @@ jobs:
             secret/data/staging/core DEPLOYER_PRIVATE_KEY ;
             secret/data/staging/core PRICER_ADDRESS ;
             secret/data/staging/core ORACLE_SIGNER_ADDRESS ;
-            secret/data/staging/core GUARDIAN_ADDRESS ;
-            secret/data/staging/core USDC_ADDRESS ;
-            secret/data/staging/core CTF_ADDRESS
+            secret/data/staging/core OPERATOR_ADDRESS ;
 
       - name: deploy
         run: uv run python deployments/deploy.py
@@ -49,9 +47,7 @@ jobs:
           DEPLOYER_PRIVATE_KEY: ${{ env.DEPLOYER_PRIVATE_KEY }}
           PRICER_ADDRESS: ${{ env.PRICER_ADDRESS }}
           ORACLE_SIGNER_ADDRESS: ${{ env.ORACLE_SIGNER_ADDRESS }}
-          GUARDIAN_ADDRESS: ${{ env.GUARDIAN_ADDRESS }}
-          USDC_ADDRESS: ${{ env.USDC_ADDRESS }}
-          CTF_ADDRESS: ${{ env.CTF_ADDRESS }}
+          OPERATOR_ADDRESS: ${{ env.OPERATOR_ADDRESS }}
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
           DEPLOY_ENV: staging
@@ -94,9 +90,8 @@ jobs:
             secret/data/prod/core DEPLOYER_PRIVATE_KEY ;
             secret/data/prod/core PRICER_ADDRESS ;
             secret/data/prod/core ORACLE_SIGNER_ADDRESS ;
-            secret/data/prod/core GUARDIAN_ADDRESS ;
+            secret/data/prod/core OPERATOR_ADDRESS ;
             secret/data/prod/core USDC_ADDRESS ;
-            secret/data/prod/core CTF_ADDRESS
 
       - name: deploy
         run: uv run python deployments/deploy.py
@@ -106,9 +101,8 @@ jobs:
           DEPLOYER_PRIVATE_KEY: ${{ env.DEPLOYER_PRIVATE_KEY }}
           PRICER_ADDRESS: ${{ env.PRICER_ADDRESS }}
           ORACLE_SIGNER_ADDRESS: ${{ env.ORACLE_SIGNER_ADDRESS }}
-          GUARDIAN_ADDRESS: ${{ env.GUARDIAN_ADDRESS }}
+          OPERATOR_ADDRESS: ${{ env.OPERATOR_ADDRESS }}
           USDC_ADDRESS: ${{ env.USDC_ADDRESS }}
-          CTF_ADDRESS: ${{ env.CTF_ADDRESS }}
           VAULT_ADDR: ${{ secrets.VAULT_ADDR }}
           VAULT_TOKEN: ${{ env.VAULT_TOKEN }}
           DEPLOY_ENV: prod
