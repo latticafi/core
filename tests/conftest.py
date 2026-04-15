@@ -124,13 +124,13 @@ def make_price_params(pool_address, condition_id, price=None):
 
 
 @pytest.fixture
-def admin():
-    return boa.env.generate_address("admin")
+def owner():
+    return boa.env.generate_address("owner")
 
 
 @pytest.fixture
-def guardian():
-    return boa.env.generate_address("guardian")
+def operator():
+    return boa.env.generate_address("operator")
 
 
 @pytest.fixture
@@ -160,23 +160,23 @@ def ctf_token():
 
 
 @pytest.fixture
-def deploy_stack(usdc, ctf_token, admin, guardian):
-    pool = boa.load("contracts/LendingPool.vy", usdc.address, ctf_token.address, admin)
-    core = boa.load("contracts/PoolCore.vy", usdc.address, pool.address, admin)
-    oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, admin)
+def deploy_stack(usdc, ctf_token, owner, operator):
+    pool = boa.load("contracts/LendingPool.vy", usdc.address, ctf_token.address, owner)
+    core = boa.load("contracts/PoolCore.vy", usdc.address, pool.address, owner)
+    oracle = boa.load("contracts/PremiumOracle.vy", PRICER_ADDRESS, core.address, owner)
     controller = boa.load(
-        "contracts/PortfolioController.vy", core.address, admin, 10_000_000 * 10**6
+        "contracts/PortfolioController.vy", core.address, owner, 10_000_000 * 10**6
     )
 
-    with boa.env.prank(admin):
+    with boa.env.prank(owner):
         core.set_peripherals(oracle.address, controller.address)
 
     reserve = boa.load(
-        "contracts/Reserve.vy", usdc.address, pool.address, admin, 10_000 * 10**6, 1000, 5000
+        "contracts/Reserve.vy", usdc.address, pool.address, owner, 10_000 * 10**6, 1000, 5000
     )
 
-    with boa.env.prank(admin):
-        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, guardian)
+    with boa.env.prank(owner):
+        pool.initialize(core.address, reserve.address, ORACLE_SIGNER_ADDRESS, operator)
 
     return {
         "pool": pool,
@@ -213,7 +213,7 @@ def reserve(deploy_stack):
 
 
 @pytest.fixture
-def funded(pool, core, usdc, ctf_token, lender, borrower_addr, admin):
+def funded(pool, core, usdc, ctf_token, lender, borrower_addr, owner):
     usdc.mint(lender, INITIAL_DEPOSIT)
     with boa.env.prank(lender):
         usdc.approve(pool.address, 2**256 - 1)
@@ -226,5 +226,5 @@ def funded(pool, core, usdc, ctf_token, lender, borrower_addr, admin):
         ctf_token.setApprovalForAll(pool.address, True)
 
     resolution = boa.env.evm.patch.timestamp + 30 * 86400
-    with boa.env.prank(admin):
+    with boa.env.prank(owner):
         core.set_market(CONDITION_ID, (TOKEN_ID, 1000, 9000, resolution, 2 * 3600, True))

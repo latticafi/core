@@ -7,8 +7,8 @@ import pytest
 
 
 @pytest.fixture
-def admin():
-    return boa.env.generate_address("admin")
+def owner():
+    return boa.env.generate_address("owner")
 
 
 @pytest.fixture
@@ -22,12 +22,12 @@ def usdc():
 
 
 @pytest.fixture
-def reserve(usdc, pool, admin):
+def reserve(usdc, pool, owner):
     return boa.load(
         "contracts/Reserve.vy",
         usdc.address,
         pool,
-        admin,
+        owner,
         10_000 * 10**6,  # target: 10k USDC
         1000,  # base retention: 10%
         5000,  # max retention: 50%
@@ -97,8 +97,8 @@ class TestHealthy:
         assert reserve.is_healthy()
 
 
-class TestAdmin:
-    def test_set_retention_bps_validates(self, reserve, admin):
-        with boa.env.prank(admin):
+class TestOwner:
+    def test_set_retention_bps_validates(self, reserve, owner):
+        with boa.env.prank(owner):
             with boa.reverts("max must be >= base"):
                 reserve.set_retention_bps(5000, 1000)

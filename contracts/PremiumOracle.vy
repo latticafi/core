@@ -45,10 +45,10 @@ event PricerRotated:
 # Constructor
 
 @deploy
-def __init__(pricer_addr: address, pool_addr: address, admin: address):
+def __init__(pricer_addr: address, pool_addr: address, owner: address):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     eip712.__init__("LatticaPremiumOracle", "1")
 
     self.pricer = pricer_addr
@@ -106,7 +106,7 @@ def get_nonce(borrower: address) -> uint256:
     return self.nonces[borrower]
 
 
-# Admin
+# Owner
 
 @external
 def set_paused(_paused: bool):

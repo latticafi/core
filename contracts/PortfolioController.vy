@@ -5,7 +5,7 @@
 @notice Enforces portfolio-level risk constraints: per-condition caps,
         per-cluster budgets, resolution-window concentration limits,
         and calibration-driven circuit breaker.
-@dev    Cluster assignments are set by admin based on off-chain
+@dev    Cluster assignments are set by owner based on off-chain
         co-movement analysis updated each epoch.
 """
 
@@ -49,10 +49,10 @@ circuit_breaker_threshold_bps: public(uint256)  # e.g. 20000 = 200%
 # Constructor
 
 @deploy
-def __init__(pool_addr: address, admin: address, _max_total: uint256):
+def __init__(pool_addr: address, owner: address, _max_total: uint256):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     self.pool = pool_addr
     self.max_total_exposure = _max_total
     self.default_window_cap = max_value(uint256)
@@ -155,7 +155,7 @@ def is_circuit_broken() -> bool:
     return self.circuit_broken
 
 
-# Admin
+# Owner
 
 @external
 def set_condition_cap(condition_id: bytes32, cap: uint256):
@@ -202,7 +202,7 @@ def set_circuit_breaker(broken: bool):
 @external
 def update_calibration(realized_bps: uint256, predicted_bps: uint256):
     """
-    @notice Called by admin at epoch settlement with calibration data.
+    @notice Called by owner at epoch settlement with calibration data.
             Auto-trips circuit breaker if realized >> predicted.
     """
     ownable._check_owner()

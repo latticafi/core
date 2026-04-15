@@ -43,7 +43,7 @@ ctf_token: public(address)
 core: public(address)
 reserve: public(address)
 oracle_signer: public(address)
-guardian: public(address)
+operator: public(address)
 initialized: public(bool)
 
 # Events
@@ -95,10 +95,10 @@ event LoanLiquidated:
 # Constructor + Init
 
 @deploy
-def __init__(usdc_addr: address, ctf_token_addr: address, admin: address):
+def __init__(usdc_addr: address, ctf_token_addr: address, owner: address):
     ownable.__init__()
     ow.__init__()
-    ow._transfer_ownership(admin)
+    ow._transfer_ownership(owner)
     ps.__init__()
     eip712.__init__("LatticaPriceFeed", "1")
     self.usdc = IERC20(usdc_addr)
@@ -110,7 +110,7 @@ def initialize(
     core_addr: address,
     reserve_addr: address,
     _oracle_signer: address,
-    guardian_addr: address,
+    operator_addr: address,
 ):
     assert not self.initialized, "already initialized"
     ownable._check_owner()
@@ -121,7 +121,7 @@ def initialize(
     self.core = core_addr
     self.reserve = reserve_addr
     self.oracle_signer = _oracle_signer
-    self.guardian = guardian_addr
+    self.operator = operator_addr
     self.initialized = True
 
 
@@ -321,7 +321,7 @@ def roll_loan(
     return new_loan_id
 
 
-# Liquidation — restricted to guardian/owner (backend)
+# Liquidation — restricted to operator/owner (backend)
 
 @external
 # No pause check — liquidations must work even when pool is paused
@@ -334,7 +334,7 @@ def trigger_liquidation(
 ):
     assert self.initialized, "not initialized"
     assert (
-        msg.sender == self.guardian or msg.sender == ownable.owner
+        msg.sender == self.operator or msg.sender == ownable.owner
     ), "not authorized"
 
     loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
@@ -376,7 +376,7 @@ def trigger_liquidation(
 def claim_expired(loan_id: uint256):
     assert self.initialized, "not initialized"
     assert (
-        msg.sender == self.guardian or msg.sender == ownable.owner
+        msg.sender == self.operator or msg.sender == ownable.owner
     ), "not authorized"
 
     loan_pre: IPoolCore.Loan = staticcall IPoolCore(self.core).get_loan(loan_id)
@@ -413,13 +413,13 @@ def _route_to_reserve(premium: uint256) -> uint256:
     return retention
 
 
-# Admin
+# Owner
 
 @external
 def pause():
     assert (
-        msg.sender == self.guardian or msg.sender == ownable.owner
-    ), "not guardian"
+        msg.sender == self.operator or msg.sender == ownable.owner
+    ), "not operator"
     ps._pause()
 
 
@@ -430,9 +430,9 @@ def unpause():
 
 
 @external
-def set_guardian(_guardian: address):
+def set_operator(_operator: address):
     ownable._check_owner()
-    self.guardian = _guardian
+    self.operator = _operator
 
 
 @external

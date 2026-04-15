@@ -6,7 +6,7 @@ def initialize(
     core_addr: address,
     reserve_addr: address,
     _oracle_signer: address,
-    guardian_addr: address,
+    operator_addr: address,
 ):
     ...
 

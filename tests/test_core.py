@@ -63,9 +63,9 @@ class TestDeposit:
             with boa.reverts("zero amount"):
                 pool.deposit(0)
 
-    def test_deposit_when_paused_reverts(self, pool, usdc, lender, admin):
+    def test_deposit_when_paused_reverts(self, pool, usdc, lender, owner):
         usdc.mint(lender, 1_000 * 10**6)
-        with boa.env.prank(admin):
+        with boa.env.prank(owner):
             pool.pause()
         with boa.env.prank(lender):
             usdc.approve(pool.address, 2**256 - 1)
@@ -201,7 +201,7 @@ class TestRoll:
 class TestLiquidation:
     @pytest.mark.usefixtures("funded")
     def test_trigger_liquidation_on_underwater_loan(
-        self, pool, core, oracle, ctf_token, borrower_addr, guardian
+        self, pool, core, oracle, ctf_token, borrower_addr, operator
     ):
         loan_id = _borrow(pool, oracle, borrower_addr)
 
@@ -209,21 +209,21 @@ class TestLiquidation:
         crash_price = liq_price - 10**14
         p, pts, pd, psig = make_price_params(pool.address, CONDITION_ID, crash_price)
 
-        with boa.env.prank(guardian):
+        with boa.env.prank(operator):
             pool.trigger_liquidation(loan_id, p, pts, pd, psig)
 
         loan = core.get_loan(loan_id)
         assert loan[12]  # liquidated
         assert core.total_borrowed() == 0
-        # Collateral transferred to guardian (the caller)
-        assert ctf_token.balanceOf(guardian, TOKEN_ID) == COLLATERAL_AMOUNT
+        # Collateral transferred to operator (the caller)
+        assert ctf_token.balanceOf(operator, TOKEN_ID) == COLLATERAL_AMOUNT
         assert ctf_token.balanceOf(pool.address, TOKEN_ID) == 0
 
     @pytest.mark.usefixtures("funded")
-    def test_trigger_healthy_loan_reverts(self, pool, oracle, borrower_addr, guardian):
+    def test_trigger_healthy_loan_reverts(self, pool, oracle, borrower_addr, operator):
         loan_id = _borrow(pool, oracle, borrower_addr)
         p, pts, pd, psig = make_price_params(pool.address, CONDITION_ID)
-        with boa.env.prank(guardian):
+        with boa.env.prank(operator):
             with boa.reverts("position is healthy"):
                 pool.trigger_liquidation(loan_id, p, pts, pd, psig)
 
@@ -240,28 +240,28 @@ class TestLiquidation:
 class TestClaimExpired:
     @pytest.mark.usefixtures("funded")
     def test_claim_expired_after_epoch(
-        self, pool, core, oracle, ctf_token, borrower_addr, guardian
+        self, pool, core, oracle, ctf_token, borrower_addr, operator
     ):
         loan_id = _borrow(pool, oracle, borrower_addr)
         boa.env.time_travel(seconds=EPOCH_24H + 1)
 
-        with boa.env.prank(guardian):
+        with boa.env.prank(operator):
             pool.claim_expired(loan_id)
 
         loan = core.get_loan(loan_id)
         assert loan[12]
-        assert ctf_token.balanceOf(guardian, TOKEN_ID) == COLLATERAL_AMOUNT
+        assert ctf_token.balanceOf(operator, TOKEN_ID) == COLLATERAL_AMOUNT
 
     @pytest.mark.usefixtures("funded")
-    def test_claim_expired_before_epoch_reverts(self, pool, oracle, borrower_addr, guardian):
+    def test_claim_expired_before_epoch_reverts(self, pool, oracle, borrower_addr, operator):
         loan_id = _borrow(pool, oracle, borrower_addr)
-        with boa.env.prank(guardian):
+        with boa.env.prank(operator):
             with boa.reverts("epoch not expired"):
                 pool.claim_expired(loan_id)
 
     @pytest.mark.usefixtures("funded")
-    def test_claim_nonexistent_loan_reverts(self, pool, guardian):
-        with boa.env.prank(guardian):
+    def test_claim_nonexistent_loan_reverts(self, pool, operator):
+        with boa.env.prank(operator):
             with boa.reverts("loan does not exist"):
                 pool.claim_expired(99999)
 
@@ -276,20 +276,20 @@ class TestClaimExpired:
 
 
 class TestPause:
-    def test_guardian_can_pause(self, pool, guardian):
-        with boa.env.prank(guardian):
+    def test_operator_can_pause(self, pool, operator):
+        with boa.env.prank(operator):
             pool.pause()
         assert pool.paused()
 
-    def test_guardian_cannot_unpause(self, pool, guardian, admin):
-        with boa.env.prank(admin):
+    def test_operator_cannot_unpause(self, pool, operator, owner):
+        with boa.env.prank(owner):
             pool.pause()
-        with boa.env.prank(guardian):
+        with boa.env.prank(operator):
             with boa.reverts("ownable: caller is not the owner"):
                 pool.unpause()
 
-    def test_owner_can_unpause(self, pool, admin):
-        with boa.env.prank(admin):
+    def test_owner_can_unpause(self, pool, owner):
+        with boa.env.prank(owner):
             pool.pause()
             pool.unpause()
         assert not pool.paused()

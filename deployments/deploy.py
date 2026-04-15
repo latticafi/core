@@ -54,7 +54,7 @@ def deploy_stack(cfg) -> dict:
     )
     print(f"  Reserve:               {reserve.address}")
 
-    pool.initialize(core.address, reserve.address, cfg.oracle_signer_address, cfg.guardian_address)
+    pool.initialize(core.address, reserve.address, cfg.oracle_signer_address, cfg.operator_address)
     print("  LendingPool initialized")
 
     return {
@@ -66,8 +66,8 @@ def deploy_stack(cfg) -> dict:
         "oracle": oracle.address,
         "controller": controller.address,
         "reserve": reserve.address,
-        "admin": cfg.deployer,
-        "guardian": cfg.guardian_address,
+        "owner": cfg.deployer,
+        "operator": cfg.operator_address,
         "pricer": cfg.pricer_address,
         "oracle_signer": cfg.oracle_signer_address,
     }
