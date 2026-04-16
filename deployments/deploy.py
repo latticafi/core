@@ -97,6 +97,7 @@ def main():
     if dry_run:
         print("[DRY RUN] Forking locally...")
         boa.fork(cfg.rpc_url, block_identifier="latest")
+        boa.env.eoa = cfg.deployer
     else:
         print("[BROADCAST] Deploying to chain...")
         acct = Account.from_key(cfg.deployer_private_key)
