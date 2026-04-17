@@ -8,7 +8,7 @@ import sys
 
 import boa
 import requests
-from config import CTF, load_config
+from config import CTF, CTF_EXCHANGE, NEG_RISK_ADAPTER, NEG_RISK_CTF_EXCHANGE, load_config
 from eth_account import Account
 from vyper.compiler.output import build_abi_output
 from web3 import Web3
@@ -118,6 +118,9 @@ def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
         "chain_id": cfg.chain_id,
         "usdc": usdc_address,
         "ctf": CTF,
+        "ctf_exchange": CTF_EXCHANGE,
+        "neg_risk_ctf_exchange": NEG_RISK_CTF_EXCHANGE,
+        "neg_risk_adapter": NEG_RISK_ADAPTER,
         "pool": pool,
         "core": core,
         "oracle": oracle,
@@ -175,6 +178,9 @@ def deploy_dryrun(cfg, usdc_address: str | None) -> dict:
         "chain_id": cfg.chain_id,
         "usdc": usdc_address,
         "ctf": CTF,
+        "ctf_exchange": CTF_EXCHANGE,
+        "neg_risk_ctf_exchange": NEG_RISK_CTF_EXCHANGE,
+        "neg_risk_adapter": NEG_RISK_ADAPTER,
         "pool": pool.address,
         "core": core.address,
         "oracle": oracle.address,
@@ -212,12 +218,15 @@ def main():
 
     cfg = load_config(mock_usdc=mock_usdc)
 
-    print(f"chain:     {cfg.chain_id}")
-    print(f"deployer:  {cfg.deployer}")
-    print(f"mode:      {'dry-run' if dry_run else 'broadcast'}")
-    print(f"usdc:      {'mock' if mock_usdc else cfg.usdc_address}")
-    print(f"ctf:       {CTF}")
-    print(f"env:       {env}")
+    print(f"chain:                          {cfg.chain_id}")
+    print(f"deployer:                       {cfg.deployer}")
+    print(f"mode:                           {'dry-run' if dry_run else 'broadcast'}")
+    print(f"usdc:                           {'mock' if mock_usdc else cfg.usdc_address}")
+    print(f"ctf:                            {CTF}")
+    print(f"ctf_exchange:                   {CTF_EXCHANGE}")
+    print(f"neg_risk_ctf_exchange:          {NEG_RISK_CTF_EXCHANGE}")
+    print(f"neg_risk_adapter:               {NEG_RISK_ADAPTER}")
+    print(f"env:                            {env}")
 
     usdc_address: str | None = None
     if not mock_usdc:
