@@ -10,11 +10,12 @@ dependencies = [
   "snekmate>=0.1.2",
   "titanoboa>=0.1.9",
   "vyper>=0.4.3",
+  "web3>=7.15.0",
 ]
 
 [dependency-groups]
 dev = ["mamushi", "pytest", "ruff", "types-PyYAML", "vyper-language-server"]
-deploy = ["eth-account", "requests"]
+deploy = ["eth-account", "requests", "web3"]
 lint = ["mamushi", "ruff"]
 test = ["pytest"]
 
