@@ -30,7 +30,7 @@ def _deploy_w3(w3: Web3, acct, source_path: str, *constructor_args) -> tuple[str
     tx = contract.constructor(*constructor_args).build_transaction(
         {
             "from": acct.address,
-            "nonce": w3.eth.get_transaction_count(acct.address),
+            "nonce": w3.eth.get_transaction_count(acct.address, "pending"),
             "gasPrice": w3.eth.gas_price,
             "chainId": w3.eth.chain_id,
         }
@@ -41,19 +41,21 @@ def _deploy_w3(w3: Web3, acct, source_path: str, *constructor_args) -> tuple[str
     assert receipt["status"] == 1, f"deploy failed: {source_path}"
 
     addr = receipt["contractAddress"]
+    assert addr is not None, f"no contract address in receipt: {source_path}"
+    addr = str(addr)
     print(f"  {source_path.split('/')[-1].replace('.vy', ''):24} {addr}")
     return addr, abi
 
 
 def _call_w3(w3: Web3, acct, addr: str, abi: list, fn_name: str, *args):
     """Call a state-changing function via web3.py."""
-    contract = w3.eth.contract(address=addr, abi=abi)
+    contract = w3.eth.contract(address=Web3.to_checksum_address(addr), abi=abi)
     fn = getattr(contract.functions, fn_name)(*args)
 
     tx = fn.build_transaction(
         {
             "from": acct.address,
-            "nonce": w3.eth.get_transaction_count(acct.address),
+            "nonce": w3.eth.get_transaction_count(acct.address, "pending"),
             "gasPrice": w3.eth.gas_price,
             "chainId": w3.eth.chain_id,
         }
