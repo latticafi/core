@@ -40,7 +40,7 @@ jobs:
             secret/data/staging/core OPERATOR_ADDRESS ;
 
       - name: deploy
-        run: uv run python deployments/deploy.py
+        run: uv run python deployments/deploy.py --mock-usdc
         env:
           RPC_URL: ${{ env.RPC_URL }}
           CHAIN_ID: ${{ env.CHAIN_ID }}
