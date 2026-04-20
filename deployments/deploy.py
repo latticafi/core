@@ -26,7 +26,6 @@ def _deploy_w3(w3: Web3, acct, source_path: str, *constructor_args) -> tuple[str
     """Deploy a contract via web3.py. Returns (address, abi)."""
     abi, bytecode = _compile(source_path)
     contract = w3.eth.contract(abi=abi, bytecode=bytecode)
-
     tx = contract.constructor(*constructor_args).build_transaction(
         {
             "from": acct.address,
@@ -39,7 +38,6 @@ def _deploy_w3(w3: Web3, acct, source_path: str, *constructor_args) -> tuple[str
     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
     receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)
     assert receipt["status"] == 1, f"deploy failed: {source_path}"
-
     addr = receipt["contractAddress"]
     assert addr is not None, f"no contract address in receipt: {source_path}"
     addr = str(addr)
@@ -51,7 +49,6 @@ def _call_w3(w3: Web3, acct, addr: str, abi: list, fn_name: str, *args):
     """Call a state-changing function via web3.py."""
     contract = w3.eth.contract(address=Web3.to_checksum_address(addr), abi=abi)
     fn = getattr(contract.functions, fn_name)(*args)
-
     tx = fn.build_transaction(
         {
             "from": acct.address,
@@ -67,6 +64,38 @@ def _call_w3(w3: Web3, acct, addr: str, abi: list, fn_name: str, *args):
     print(f"  {fn_name} OK")
 
 
+def _make_addresses(
+    cfg,
+    usdc_address: str,
+    pool: str,
+    core: str,
+    oracle: str,
+    controller: str,
+    reserve: str,
+    views: str,
+    owner: str,
+) -> dict:
+    """Build addresses dict with keys matching rest-api deploy workflow."""
+    return {
+        "CHAIN_ID": cfg.chain_id,
+        "USDC_ADDRESS": usdc_address,
+        "CTF_ADDRESS": CTF,
+        "CTF_EXCHANGE": CTF_EXCHANGE,
+        "NEG_RISK_CTF_EXCHANGE": NEG_RISK_CTF_EXCHANGE,
+        "NEG_RISK_ADAPTER": NEG_RISK_ADAPTER,
+        "POOL_ADDRESS": pool,
+        "CORE_ADDRESS": core,
+        "ORACLE_ADDRESS": oracle,
+        "CONTROLLER_ADDRESS": controller,
+        "RESERVE_ADDRESS": reserve,
+        "VIEWS_ADDRESS": views,
+        "OWNER": owner,
+        "OPERATOR_ADDRESS": cfg.operator_address,
+        "PRICER_ADDRESS": cfg.pricer_address,
+        "ORACLE_SIGNER_ADDRESS": cfg.oracle_signer_address,
+    }
+
+
 def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
     """Deploy all contracts via web3.py."""
     w3 = Web3(Web3.HTTPProvider(cfg.rpc_url))
@@ -80,10 +109,13 @@ def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
     pool, pool_abi = _deploy_w3(
         w3, acct, "contracts/LendingPool.vy", usdc_address, CTF, acct.address
     )
+
     core, core_abi = _deploy_w3(w3, acct, "contracts/PoolCore.vy", usdc_address, pool, acct.address)
+
     oracle, _ = _deploy_w3(
         w3, acct, "contracts/PremiumOracle.vy", cfg.pricer_address, core, acct.address
     )
+
     controller, _ = _deploy_w3(
         w3, acct, "contracts/PortfolioController.vy", core, acct.address, 10_000_000 * 10**6
     )
@@ -102,6 +134,8 @@ def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
         3000,
     )
 
+    views, _ = _deploy_w3(w3, acct, "contracts/Views.vy", pool, core, controller, reserve)
+
     _call_w3(
         w3,
         acct,
@@ -114,23 +148,9 @@ def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
         cfg.operator_address,
     )
 
-    return {
-        "chain_id": cfg.chain_id,
-        "usdc": usdc_address,
-        "ctf": CTF,
-        "ctf_exchange": CTF_EXCHANGE,
-        "neg_risk_ctf_exchange": NEG_RISK_CTF_EXCHANGE,
-        "neg_risk_adapter": NEG_RISK_ADAPTER,
-        "pool": pool,
-        "core": core,
-        "oracle": oracle,
-        "controller": controller,
-        "reserve": reserve,
-        "owner": acct.address,
-        "operator": cfg.operator_address,
-        "pricer": cfg.pricer_address,
-        "oracle_signer": cfg.oracle_signer_address,
-    }
+    return _make_addresses(
+        cfg, usdc_address, pool, core, oracle, controller, reserve, views, acct.address
+    )
 
 
 def deploy_dryrun(cfg, usdc_address: str | None) -> dict:
@@ -171,26 +191,25 @@ def deploy_dryrun(cfg, usdc_address: str | None) -> dict:
     )
     print(f"  {'Reserve':24} {reserve.address}")
 
+    views = boa.load(
+        "contracts/Views.vy", pool.address, core.address, controller.address, reserve.address
+    )
+    print(f"  {'Views':24} {views.address}")
+
     pool.initialize(core.address, reserve.address, cfg.oracle_signer_address, cfg.operator_address)
     print("  initialize OK")
 
-    return {
-        "chain_id": cfg.chain_id,
-        "usdc": usdc_address,
-        "ctf": CTF,
-        "ctf_exchange": CTF_EXCHANGE,
-        "neg_risk_ctf_exchange": NEG_RISK_CTF_EXCHANGE,
-        "neg_risk_adapter": NEG_RISK_ADAPTER,
-        "pool": pool.address,
-        "core": core.address,
-        "oracle": oracle.address,
-        "controller": controller.address,
-        "reserve": reserve.address,
-        "owner": cfg.deployer,
-        "operator": cfg.operator_address,
-        "pricer": cfg.pricer_address,
-        "oracle_signer": cfg.oracle_signer_address,
-    }
+    return _make_addresses(
+        cfg,
+        usdc_address,
+        pool.address,
+        core.address,
+        oracle.address,
+        controller.address,
+        reserve.address,
+        views.address,
+        cfg.deployer,
+    )
 
 
 def push_addresses_to_vault(addresses: dict, env: str):
