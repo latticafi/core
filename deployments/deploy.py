@@ -155,7 +155,9 @@ def deploy_broadcast(cfg, usdc_address: str | None) -> dict:
 
 def deploy_dryrun(cfg, usdc_address: str | None) -> dict:
     """Deploy via boa fork (no gas, local only)."""
-    boa.fork(cfg.rpc_url, block_identifier="latest")
+    w3 = Web3(Web3.HTTPProvider(cfg.rpc_url))
+    block = w3.eth.block_number - 5
+    boa.fork(cfg.rpc_url, block_identifier=block)
     boa.env.eoa = cfg.deployer
 
     if usdc_address is None:

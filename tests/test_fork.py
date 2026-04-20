@@ -7,6 +7,7 @@ import os
 
 import boa
 import pytest
+from web3 import Web3
 
 from conftest import ORACLE_SIGNER_ADDRESS, PRICER_ADDRESS
 
@@ -52,7 +53,10 @@ USDC_WHALE = "0x625E7708f30cA75bfd92586e17077590C60eb4cD"
 
 @pytest.fixture(scope="module", autouse=True)
 def fork():
-    boa.fork(os.environ["RPC_URL"], block_identifier="latest")
+    rpc_url = os.environ["RPC_URL"]
+    w3 = Web3(Web3.HTTPProvider(rpc_url))
+    block = w3.eth.block_number - 5
+    boa.fork(rpc_url, block_identifier=block)
     yield
 
 
