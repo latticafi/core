@@ -24,7 +24,7 @@ jobs:
 
       - run: uv sync --group deploy
 
-      - uses: hashicorp/vault-action@v3
+      - uses: hashicorp/vault-action@v4
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
@@ -77,7 +77,7 @@ jobs:
 
       - run: uv sync --group deploy
 
-      - uses: hashicorp/vault-action@v3
+      - uses: hashicorp/vault-action@v4
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
